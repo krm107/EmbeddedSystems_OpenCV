@@ -12,8 +12,16 @@ project(myopencvproject)
 # Tell CMake to look for OpenCV 2.0 (and tell it that it's required, not optional)
 find_package(OpenCV REQUIRED)
 
+
+#defines a target that uses C++11
+set (CMAKE_CXX_STANDARD 11)
+#use thread libraries in project
+find_package( Threads )
+
+
 # Tell CMake to add the OpenCV include directory for the preprocessor
 include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 # Add the source files to a variable
 set( SOURCES
@@ -25,11 +33,11 @@ set( HEADERS
 	#main.hpp
 )
 
+
 # Define the actual executable target and the source files
 add_executable(myopencvthing ${SOURCES} ${HEADERS} )
 #add_executable(myopencvthing)
 
 # Finally, add the dependencies of our executable (i.e. OpenCV):
-target_link_libraries(myopencvthing ${OpenCV_LIBS})
-
+target_link_libraries(myopencvthing ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 

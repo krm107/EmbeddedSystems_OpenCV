@@ -1,5 +1,9 @@
 #include <iostream>
 #include <stdexcept>
+#include <ctime>
+#include <thread>
+#include <pthread.h>
+#include <string>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -11,20 +15,13 @@ using namespace cv;
 using namespace std;
 
 
-#define CAMERA_NUMBER 0 //flag to set source of video: "camera 0" is the builtin laptop webcam, "camera 1" is usb webcam
-#define MAX_NUM_OBJECTS 15 // Program will only track 30 objects at a time (this is just in case noise becomes a problem)
+//#define MAX_NUM_OBJECTS 15 // Program will only track 30 objects at a time (this is just in case noise becomes a problem)
 #define FRAME_WIDTH 640
 #define FRAME_HEIGHT 480
 
 
-const char* keys =
-{
-    "{ help h      |                     | print help message }"
-    "{ image i     |                     | specify input image}"
-    "{ camera c    |                     | enable camera capturing }"
-    "{ video v     | /vtest.avi   	| use video as input }"
-    "{ directory d |                     | images directory}"
-};
+
+
 
 static void detectAndDraw(const HOGDescriptor &hog, Mat &img)
 {
@@ -65,65 +62,101 @@ static void detectAndDraw(const HOGDescriptor &hog, Mat &img)
     }
 }
 
-int main(int argc, char** argv)
+
+
+
+void cameraOperations(int cameraNum)
 {
-	CommandLineParser parser(argc, argv, keys);
+	int camera_id = -1;
+	int tick = 0;
+	int fps = 0;
+	long frameCounter = 0;
+	std::time_t timeBegin = std::time(0);
+	Mat frame1;
 
-	if (parser.has("help"))
-	{
-		cout << "\nThis program demonstrates the use of the HoG descriptor using\n"
-		    " HOGDescriptor::hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());\n";
-		parser.printMessage();
-		cout << "During execution:\n\tHit q or ESC key to quit.\n"
-		    "\tUsing OpenCV version " << CV_VERSION << "\n"
-		    "Note: camera device number must be different from -1.\n" << endl;
-		return 0;
-	}
 
+	//create "Histogram of Oriented Gradients"
 	HOGDescriptor hog;
 	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
-	namedWindow("people detector", 1);
 
-	string pattern_glob = "";
-	int camera_id = -1;
+	
+	//Set source of video: "camera 0" is the builtin laptop webcam, "camera 1" is usb webcam
+	VideoCapture vc1(cameraNum); //Open the Default Camera
+
+	if (!vc1.isOpened() ) 
+		exit(EXIT_FAILURE); //Check if we succeeded in receiving images from camera. If not, quit program.
+
+	vc1.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH); //Set height and width of capture frame
+	vc1.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
 
 
-
-//from ROOBockey project:
-	Mat frame;
-	Mat ColorThresholded_Img0, ColorThresholded_Img, outputImg0, outputImg, src, HSV_Input;
-	vector<vector<Point> > contours;
-	vector<Vec4i> hierarchy;
-
-	VideoCapture vc(CAMERA_NUMBER); //Open the Default Camera
-	if (!vc.isOpened()) exit(EXIT_FAILURE); //Check if we succeeded in receiving images from camera. If not, quit program.
-	vc.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH); //Set height and width of capture frame
-	vc.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
-
-	vc >> frame; //get a new frame from camera
-
-	if (!vc.isOpened())
-	{
-		stringstream msg;
-		msg << "can't open camera: " << camera_id;
-		throw runtime_error(msg.str());
-	}
+	//give video window a title
+	string windowName = "people detector" + to_string(cameraNum);
 
 
         while(true)
         {
-		vc >> frame;
-
-		if (frame.empty())
+		vc1 >> frame1; //get a new frame from camera
+		if ( frame1.empty() )
+		{
+			cout << "Camera " << cameraNum << " " << "could not be opened" << endl;
 			break;
+		}
 
-		detectAndDraw(hog, frame);
+		detectAndDraw(hog, frame1);
 
-		imshow("people detector", frame);
-		int c = waitKey( vc.isOpened() ? 30 : 0 ) & 255;
-		if ( c == 'q' || c == 'Q' || c == 27)
-			break;
+		//display frame count on video window
+		cv::resize(frame1, frame1, cv::Size(FRAME_WIDTH, FRAME_HEIGHT));
+		cv::rectangle(frame1, cv::Rect(0, 0, 900, 40), cv::Scalar(0, 0, 0), -1);
+		cv::putText(frame1, cv::format("Frames per second: %d - %d", fps, frameCounter), 				cv::Point(30, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0));
+
+
+		imshow(windowName, frame1);
+
+
+		//delay for 1 milliseconds
+		waitKey(1);
+
+
+		//update frame count value
+	        frameCounter++;
+		std::time_t timeNow = std::time(0) - timeBegin;
+
+		if (timeNow - tick >= 1)
+		{
+		    tick++;
+		    fps = frameCounter;
+		    frameCounter = 0;
+		}
+
+
+		//convey which thread is being run at a time
+		cout << cameraNum << endl;
         }
-
-    return 0;
 }
+
+
+
+
+int main(void)
+{
+	//run camera operations in separate threads
+	//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
+	int camera0 = 0;
+	int camera1 = 1;
+
+	std::thread first (cameraOperations, camera0); //spawn new thread that calls cameraOperations(camera0)
+	std::thread second (cameraOperations, camera1); //spawn new thread that calls cameraOperations(camera1)
+	std::cout << "main, foo and bar now execute concurrently...\n";
+
+
+	while(true)
+	{
+		//delay for 1 milliseconds
+		//waitKey(1);
+	}
+
+
+	return 0;
+}
+
