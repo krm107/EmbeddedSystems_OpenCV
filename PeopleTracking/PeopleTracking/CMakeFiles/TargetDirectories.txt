@@ -1,0 +1,3 @@
+/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles/edit_cache.dir
+/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles/rebuild_cache.dir
+/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles/myopencvthing.dir
