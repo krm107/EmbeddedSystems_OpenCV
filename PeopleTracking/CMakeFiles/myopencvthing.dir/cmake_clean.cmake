@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/myopencvthing.dir/peopledetect.cpp.o"
+  "CMakeFiles/myopencvthing.dir/personObj.cpp.o"
+  "CMakeFiles/myopencvthing.dir/main.cpp.o"
   "myopencvthing.pdb"
   "myopencvthing"
 )

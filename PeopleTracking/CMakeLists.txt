@@ -25,12 +25,13 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Add the source files to a variable
 set( SOURCES
-	peopledetect.cpp
-	#main.cpp
+	personObj.cpp
+	main.cpp
 )
 
 set( HEADERS
-	#main.hpp
+	personObj.h
+	main.h
 )
 
 

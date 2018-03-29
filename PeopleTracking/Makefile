@@ -123,32 +123,59 @@ myopencvthing/fast:
 	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/build
 .PHONY : myopencvthing/fast
 
-peopledetect.o: peopledetect.cpp.o
+main.o: main.cpp.o
 
-.PHONY : peopledetect.o
+.PHONY : main.o
 
 # target to build an object file
-peopledetect.cpp.o:
-	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/peopledetect.cpp.o
-.PHONY : peopledetect.cpp.o
+main.cpp.o:
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/main.cpp.o
+.PHONY : main.cpp.o
 
-peopledetect.i: peopledetect.cpp.i
+main.i: main.cpp.i
 
-.PHONY : peopledetect.i
+.PHONY : main.i
 
 # target to preprocess a source file
-peopledetect.cpp.i:
-	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/peopledetect.cpp.i
-.PHONY : peopledetect.cpp.i
+main.cpp.i:
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/main.cpp.i
+.PHONY : main.cpp.i
 
-peopledetect.s: peopledetect.cpp.s
+main.s: main.cpp.s
 
-.PHONY : peopledetect.s
+.PHONY : main.s
 
 # target to generate assembly for a file
-peopledetect.cpp.s:
-	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/peopledetect.cpp.s
-.PHONY : peopledetect.cpp.s
+main.cpp.s:
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/main.cpp.s
+.PHONY : main.cpp.s
+
+personObj.o: personObj.cpp.o
+
+.PHONY : personObj.o
+
+# target to build an object file
+personObj.cpp.o:
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/personObj.cpp.o
+.PHONY : personObj.cpp.o
+
+personObj.i: personObj.cpp.i
+
+.PHONY : personObj.i
+
+# target to preprocess a source file
+personObj.cpp.i:
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/personObj.cpp.i
+.PHONY : personObj.cpp.i
+
+personObj.s: personObj.cpp.s
+
+.PHONY : personObj.s
+
+# target to generate assembly for a file
+personObj.cpp.s:
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/personObj.cpp.s
+.PHONY : personObj.cpp.s
 
 # Help Target
 help:
@@ -159,9 +186,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... myopencvthing"
-	@echo "... peopledetect.o"
-	@echo "... peopledetect.i"
-	@echo "... peopledetect.s"
+	@echo "... main.o"
+	@echo "... main.i"
+	@echo "... main.s"
+	@echo "... personObj.o"
+	@echo "... personObj.i"
+	@echo "... personObj.s"
 .PHONY : help
 
 

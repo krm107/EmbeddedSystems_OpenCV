@@ -57,38 +57,64 @@ include CMakeFiles/myopencvthing.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/myopencvthing.dir/flags.make
 
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.o: CMakeFiles/myopencvthing.dir/flags.make
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.o: peopledetect.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/myopencvthing.dir/peopledetect.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/myopencvthing.dir/peopledetect.cpp.o -c /home/km/Desktop/opencv_sample/PeopleTracking/peopledetect.cpp
+CMakeFiles/myopencvthing.dir/personObj.cpp.o: CMakeFiles/myopencvthing.dir/flags.make
+CMakeFiles/myopencvthing.dir/personObj.cpp.o: personObj.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/myopencvthing.dir/personObj.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/myopencvthing.dir/personObj.cpp.o -c /home/km/Desktop/opencv_sample/PeopleTracking/personObj.cpp
 
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/myopencvthing.dir/peopledetect.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/km/Desktop/opencv_sample/PeopleTracking/peopledetect.cpp > CMakeFiles/myopencvthing.dir/peopledetect.cpp.i
+CMakeFiles/myopencvthing.dir/personObj.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/myopencvthing.dir/personObj.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/km/Desktop/opencv_sample/PeopleTracking/personObj.cpp > CMakeFiles/myopencvthing.dir/personObj.cpp.i
 
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/myopencvthing.dir/peopledetect.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/km/Desktop/opencv_sample/PeopleTracking/peopledetect.cpp -o CMakeFiles/myopencvthing.dir/peopledetect.cpp.s
+CMakeFiles/myopencvthing.dir/personObj.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/myopencvthing.dir/personObj.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/km/Desktop/opencv_sample/PeopleTracking/personObj.cpp -o CMakeFiles/myopencvthing.dir/personObj.cpp.s
 
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.requires:
+CMakeFiles/myopencvthing.dir/personObj.cpp.o.requires:
 
-.PHONY : CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.requires
+.PHONY : CMakeFiles/myopencvthing.dir/personObj.cpp.o.requires
 
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.provides: CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.requires
-	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.provides.build
-.PHONY : CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.provides
+CMakeFiles/myopencvthing.dir/personObj.cpp.o.provides: CMakeFiles/myopencvthing.dir/personObj.cpp.o.requires
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/personObj.cpp.o.provides.build
+.PHONY : CMakeFiles/myopencvthing.dir/personObj.cpp.o.provides
 
-CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.provides.build: CMakeFiles/myopencvthing.dir/peopledetect.cpp.o
+CMakeFiles/myopencvthing.dir/personObj.cpp.o.provides.build: CMakeFiles/myopencvthing.dir/personObj.cpp.o
+
+
+CMakeFiles/myopencvthing.dir/main.cpp.o: CMakeFiles/myopencvthing.dir/flags.make
+CMakeFiles/myopencvthing.dir/main.cpp.o: main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/myopencvthing.dir/main.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/myopencvthing.dir/main.cpp.o -c /home/km/Desktop/opencv_sample/PeopleTracking/main.cpp
+
+CMakeFiles/myopencvthing.dir/main.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/myopencvthing.dir/main.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/km/Desktop/opencv_sample/PeopleTracking/main.cpp > CMakeFiles/myopencvthing.dir/main.cpp.i
+
+CMakeFiles/myopencvthing.dir/main.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/myopencvthing.dir/main.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/km/Desktop/opencv_sample/PeopleTracking/main.cpp -o CMakeFiles/myopencvthing.dir/main.cpp.s
+
+CMakeFiles/myopencvthing.dir/main.cpp.o.requires:
+
+.PHONY : CMakeFiles/myopencvthing.dir/main.cpp.o.requires
+
+CMakeFiles/myopencvthing.dir/main.cpp.o.provides: CMakeFiles/myopencvthing.dir/main.cpp.o.requires
+	$(MAKE) -f CMakeFiles/myopencvthing.dir/build.make CMakeFiles/myopencvthing.dir/main.cpp.o.provides.build
+.PHONY : CMakeFiles/myopencvthing.dir/main.cpp.o.provides
+
+CMakeFiles/myopencvthing.dir/main.cpp.o.provides.build: CMakeFiles/myopencvthing.dir/main.cpp.o
 
 
 # Object files for target myopencvthing
 myopencvthing_OBJECTS = \
-"CMakeFiles/myopencvthing.dir/peopledetect.cpp.o"
+"CMakeFiles/myopencvthing.dir/personObj.cpp.o" \
+"CMakeFiles/myopencvthing.dir/main.cpp.o"
 
 # External object files for target myopencvthing
 myopencvthing_EXTERNAL_OBJECTS =
 
-myopencvthing: CMakeFiles/myopencvthing.dir/peopledetect.cpp.o
+myopencvthing: CMakeFiles/myopencvthing.dir/personObj.cpp.o
+myopencvthing: CMakeFiles/myopencvthing.dir/main.cpp.o
 myopencvthing: CMakeFiles/myopencvthing.dir/build.make
 myopencvthing: /usr/local/lib/libopencv_dnn.so.3.4.0
 myopencvthing: /usr/local/lib/libopencv_ml.so.3.4.0
@@ -108,7 +134,7 @@ myopencvthing: /usr/local/lib/libopencv_imgcodecs.so.3.4.0
 myopencvthing: /usr/local/lib/libopencv_imgproc.so.3.4.0
 myopencvthing: /usr/local/lib/libopencv_core.so.3.4.0
 myopencvthing: CMakeFiles/myopencvthing.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable myopencvthing"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable myopencvthing"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/myopencvthing.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -116,7 +142,8 @@ CMakeFiles/myopencvthing.dir/build: myopencvthing
 
 .PHONY : CMakeFiles/myopencvthing.dir/build
 
-CMakeFiles/myopencvthing.dir/requires: CMakeFiles/myopencvthing.dir/peopledetect.cpp.o.requires
+CMakeFiles/myopencvthing.dir/requires: CMakeFiles/myopencvthing.dir/personObj.cpp.o.requires
+CMakeFiles/myopencvthing.dir/requires: CMakeFiles/myopencvthing.dir/main.cpp.o.requires
 
 .PHONY : CMakeFiles/myopencvthing.dir/requires
 

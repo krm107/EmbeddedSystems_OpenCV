@@ -4,7 +4,8 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/km/Desktop/opencv_sample/PeopleTracking/peopledetect.cpp" "/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles/myopencvthing.dir/peopledetect.cpp.o"
+  "/home/km/Desktop/opencv_sample/PeopleTracking/main.cpp" "/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles/myopencvthing.dir/main.cpp.o"
+  "/home/km/Desktop/opencv_sample/PeopleTracking/personObj.cpp" "/home/km/Desktop/opencv_sample/PeopleTracking/CMakeFiles/myopencvthing.dir/personObj.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
