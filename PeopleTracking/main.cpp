@@ -159,18 +159,12 @@ void drawPersonObjInfoOnImage(std::vector<personObj> &personObjsVector, cv::Mat 
 
 void cameraOperations(int cameraNum)
 {
-	int camera_id = -1;
 	int tick = 0;
 	int fps = 0;
 	long frameCounter = 0;
 	std::time_t timeBegin = std::time(0);
 	cv::Mat frame1;
 	cv::Mat frame2;
-
-
-	//create "Histogram of Oriented Gradients"
-	HOGDescriptor hog;
-	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
 
 	
 	//Set source of video: "camera 0" is the builtin laptop webcam, "camera 1" is usb webcam
@@ -263,12 +257,6 @@ void cameraOperations(int cameraNum)
 		if(seeDebugFrames)
 			cv::imshow(windowName3, convexHullImg);
 
-		//display frame count on video window
-		cv::resize(frame1, frame1, cv::Size(FRAME_WIDTH, FRAME_HEIGHT));
-		cv::rectangle(frame1, cv::Rect(0, 0, 900, 40), cv::Scalar(0, 0, 0), -1);
-		cv::putText(frame1, cv::format("Fps: %d - %d", fps, frameCounter),
-			cv::Point(30, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0));
-
 
 //////////////////////////////////////////////////////////////////////
 //NEW CODE: 2018/03/28
@@ -279,7 +267,7 @@ void cameraOperations(int cameraNum)
 		for (auto &convexHull : convexHullsVector) {
 		    personObj possiblePerson(convexHull);
 
-//		    if (possiblePerson.currentBoundingRect.area() > 100 &&
+			//Tune these parameters for the correct object size
 		    if (possiblePerson.currentBoundingRect.area() > 100 &&
 		        possiblePerson.dblCurrentAspectRatio >= 0.2 &&
 		        possiblePerson.dblCurrentAspectRatio <= 1.25 &&
@@ -329,7 +317,7 @@ void cameraOperations(int cameraNum)
 		if(temp1 > 20)
 		{
 			//convey which thread is being run at a time, but only every 1000ms
-			cout << cameraNum << endl;
+			cout << "camNum: " << cameraNum << "fps: " << fps << endl;
 			temp1 = 0;
 		}
 
