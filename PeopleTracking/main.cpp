@@ -18,10 +18,10 @@ using namespace std;
 
 
 //#define MAX_NUM_OBJECTS 15 // Program will only track 30 objects at a time (this is just in case noise becomes a problem)
-#define FRAME_WIDTH 640
-#define FRAME_HEIGHT 480
-//#define FRAME_WIDTH 320
-//#define FRAME_HEIGHT 240
+//#define FRAME_WIDTH 640
+//#define FRAME_HEIGHT 480
+#define FRAME_WIDTH 320
+#define FRAME_HEIGHT 240
 
 
 #define BLACK cv::Scalar(0.0, 0.0, 0.0)
@@ -29,6 +29,22 @@ using namespace std;
 #define YELLOW cv::Scalar(0.0, 255.0, 255.0)
 #define GREEN cv::Scalar(0.0, 200.0, 0.0)
 #define RED cv::Scalar(0.0, 0.0, 255.0)
+
+//Tunable Parameters for object detection
+int THRESHOLD = 30; //default value of 30
+int RECT_AREA = 1000; //default value of 100
+double ASPECT_RATIO_HIGH = 0.2; //default value of 0.2
+double ASPECT_RATIO_LOW = 1.25; //default value of 1.25
+int RECT_WIDTH = 20; //default value of 20
+int RECT_HEIGHT = 20; //default value of 20
+double RECT_DIAGONAL = 30.0; //default value of 30.0
+double RECT_AREA_MIN = 0.80; //default value of 0.40
+int STOP_PROGRAM = 0;
+
+//This function gets called whenever a trackbar position is changed
+void on_trackbar( int, void* )
+{
+}
 
 
 
@@ -43,9 +59,7 @@ bool seeDebugFrames = false;
 //used to draw "contoursVector" on the display
 void drawAndShowContours(cv::Size imageSize, std::vector<std::vector<cv::Point> > contours, std::string strImageName) {
     cv::Mat image(imageSize, CV_8UC3, BLACK);
-
     cv::drawContours(image, contours, -1, WHITE, -1);
-
     cv::imshow(strImageName, image);
 }
 
@@ -155,6 +169,26 @@ void drawPersonObjInfoOnImage(std::vector<personObj> &personObjsVector, cv::Mat 
 }
 
 
+//trackbars are used to tune the parameters for detecting after applying a "convex hull"
+void createTrackbars(){
+
+	string trackbarWindowName = "Trackbars";
+
+	//create window for trackbars
+    	namedWindow(trackbarWindowName,0);
+	//create trackbars and insert them into window
+	//3 parameters are: 
+	//the address of the variable that is changing when the trackbar is moved(eg.THRESHOLD),
+	//the max value the trackbar can move (eg. 255 for 8 bit register), 
+	//and the function that is called whenever the trackbar is moved(eg. on_trackbar)
+	createTrackbar( "THRESHOLD", trackbarWindowName, &THRESHOLD, 255, on_trackbar );
+	createTrackbar( "RECT_AREA", trackbarWindowName, &RECT_AREA, 20000, on_trackbar );
+	createTrackbar( "RECT_WIDTH", trackbarWindowName, &RECT_WIDTH, 255, on_trackbar );
+	createTrackbar( "RECT_HEIGHT", trackbarWindowName, &RECT_HEIGHT, 255, on_trackbar );
+	createTrackbar( "STOP_PROGRAM", trackbarWindowName, &STOP_PROGRAM, 1, on_trackbar );
+}
+
+
 
 
 void cameraOperations(int cameraNum)
@@ -210,7 +244,7 @@ void cameraOperations(int cameraNum)
 		//Take difference between images
 		cv::absdiff(frame1Copy, frame2Copy, imgDifference);
 		//Filter image further
-		cv::threshold(imgDifference, imgThresh, 30, 255.0, CV_THRESH_BINARY);
+		cv::threshold(imgDifference, imgThresh, THRESHOLD, 255.0, CV_THRESH_BINARY);
 		//give video window a title
 		string windowName = "cam" + to_string(cameraNum) + ": windowName1:DifferenceAndThresh";
 		if(seeDebugFrames)
@@ -268,17 +302,16 @@ void cameraOperations(int cameraNum)
 		    personObj possiblePerson(convexHull);
 
 			//Tune these parameters for the correct object size
-		    if (possiblePerson.currentBoundingRect.area() > 100 &&
-		        possiblePerson.dblCurrentAspectRatio >= 0.2 &&
-		        possiblePerson.dblCurrentAspectRatio <= 1.25 &&
-		        possiblePerson.currentBoundingRect.width > 20 &&
-		        possiblePerson.currentBoundingRect.height > 20 &&
-		        possiblePerson.dblCurrentDiagonalSize > 30.0 &&
-		        (cv::contourArea(possiblePerson.currentContour) / (double)possiblePerson.currentBoundingRect.area()) > 0.40) {
+		    if (possiblePerson.currentBoundingRect.area() > RECT_AREA &&
+		        possiblePerson.dblCurrentAspectRatio >= ASPECT_RATIO_HIGH &&
+		        possiblePerson.dblCurrentAspectRatio <= ASPECT_RATIO_LOW &&
+		        possiblePerson.currentBoundingRect.width > RECT_WIDTH &&
+		        possiblePerson.currentBoundingRect.height > RECT_HEIGHT &&
+		        possiblePerson.dblCurrentDiagonalSize > RECT_DIAGONAL &&
+		        (cv::contourArea(possiblePerson.currentContour) / (double)possiblePerson.currentBoundingRect.area()) > RECT_AREA_MIN) {
 		        peopleObjsCurrentFrameVector.push_back(possiblePerson);
 		    }
 		}
-
 
 		if (firstTimeThrough == true) {
 		    for (auto &currentPersonObj : peopleObjsCurrentFrameVector) {
@@ -321,11 +354,16 @@ void cameraOperations(int cameraNum)
 			temp1 = 0;
 		}
 
+
 		firstTimeThrough = false;
 		temp1++;
 
 		//delay for 1 milliseconds to keep "imshow()" from locking up
 		cv::waitKey(1);
+
+		//if user selects to terminate/stop the program, stop all threads
+		if(STOP_PROGRAM > 0)
+			std::terminate();
         }
 }
 
@@ -339,16 +377,24 @@ int main(void)
 	int camera0 = 0;
 	int camera1 = 1;
 
+	//create slider bars for object filtering
+	createTrackbars();
+
 	std::thread first (cameraOperations, camera0); //spawn new thread that calls cameraOperations(camera0)
 	std::thread second (cameraOperations, camera1); //spawn new thread that calls cameraOperations(camera1)
 	std::cout << "camera objects now execute concurrently...\n";
 
+//Makes the main thread wait for the new thread to finish execution, therefore blocks its own execution.
+	first.join();
+	second.join();
 
+/*
 	while(true)
 	{
 		//delay for 1 milliseconds
-		//waitKey(1);
+		waitKey(1);
 	}
+*/
 
 
 	return 0;
