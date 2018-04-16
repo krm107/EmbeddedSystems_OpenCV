@@ -1,0 +1,107 @@
+Yuanzhi,
+
+The following is how I approached the people detecting assignment.
+
+
+//Using Cascade Classifier method:
+
+//OpenCV3.2.0 example for cascade classifier
+https://docs.opencv.org/3.2.0/db/d28/tutorial_cascade_classifier.html
+
+//Youtube video of cascade classifier (upper body)
+https://www.youtube.com/watch?v=O-3ojn-ZxeM
+
+XML file for "upper body cascade classifier"
+https://github.com/opencv/opencv/blob/3.1.0/data/haarcascades/haarcascade_upperbody.xml
+
+//tuning recommendations for cascade classifier
+https://stackoverflow.com/questions/44892905/upperbody-detection-using-haar-cascade
+
+
+//This is the "magic" function for running the Cascade Classifier
+CascadeClassifier::detectMultiScale( img, detectedPeopleRectanglesVector, scaleFactor, MIN_NEIGHBORS, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
+detectedPeopleRectanglesVector[0] is recommended (many rectangles can be detected in an image, but you can only look at the first one it finds by indexing "detectedPeopleRectanglesVector" to element zero.
+
+
+
+//THE CASCADE CLASSIFIER IS NOT THREAD SAFE IF YOU ARE MULTITHREADING!!!!!
+//This took me hours to figure out you have to open the classifier XML file once, then pass it to each thread
+//YOU MUST DO THIS IF YOU PLAN ON MULTITHREADING WITH THE CASCADE CLASSIFIER
+https://stackoverflow.com/questions/7285480/opencv-cascadeclassifier-c-interface-in-multiple-threads
+https://stackoverflow.com/questions/15429035/multithreaded-face-detection-stops-working
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//Compute area of a detected rectangle in OpenCV
+//If getting larger (present frame rectangle area > previous frame's rectangle area), person must be approaching the camera
+double rectangleDifferenceAreaBetweenFrames = PresentArea - LastArea;
+rollAvgRectArea >= RECT_AREA_SIZE_MOVING_CLOSER_THRESHOLD; //This "RECT_AREA_SIZE_MOVING_CLOSER_THRESHOLD" limit will need to be tuned by you
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//rolling average on detecting rectangles
+//I recommend doing this on at least 5 samples of the rectangle area
+Rectangle area is computed by:
+	area = cv::rectObject.width * cv::rectObject.height;
+
+http://playground.arduino.cc/Main/RunningAverage
+
+long runningAverage(double rectangleArea) {
+  #define LM_SIZE 10
+  static double LM[LM_SIZE];      // LastMeasurements
+  static byte index = 0;
+  static double sum = 0;
+  static byte count = 0;
+
+  // keep sum updated to improve speed.
+  sum -= LM[index];
+  LM[index] = M;
+  sum += LM[index];
+  index++;
+  index = index % LM_SIZE;
+  if (count < LM_SIZE) count++;
+
+  return (double)(sum / (double)count);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Also look up examples of how to use:
+
+//trackbars for tuning theshold filter parameters on the fly
+https://docs.opencv.org/2.4/doc/tutorials/highgui/trackbar/trackbar.html
+
+//thresholding 
+google and even on youtube: "Opencv threshold"
+
+
+This should be enough to get you started.
+The actual algorithm is up to you on how you want to approach the problem (using a class object to simplify code)
+
+
+-Keith
+
+
+
+
+
+
+On Sun, Apr 15, 2018 at 9:50 PM, Yuanzhi Li <yxl1938@case.edu> wrote:
+Hi Martin,
+
+I am the guy who asked you the question and had a talk with you in the last embedded system class. I remembered that your team used one tracking function that store area of tracked object, and then compare this area with that in the next frame(like this or something else). I want to employ this function, it sounds like an effective way to track objects and estimate the distance between objects and camera. 
+
+Last tacking function I found seems impossible to use. That tracking function is this :
+https://www.slideshare.net/omidAsudeh/real-time-pedestrian-detection-tracking-and-distance-estimation?from_action=save 
+
+ This tracking function employs relative coordinate  (very clever way) and corner points to track objects, hog body detection(which I am using) to detect human. The most important part of this function is to use relative coordinate to compute the distance between camera and people, but through one day's effort, I found this part is too complicated to implement, and that computing formula seems unreliable. So i decide to give it up. ..
+
+Where can I find some stuff or reference websites to learn about the mechanism of your tracking function? Thanks a lot. 
+
+Yuanzhi Li
+

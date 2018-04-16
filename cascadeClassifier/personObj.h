@@ -5,30 +5,40 @@
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/imgproc/imgproc.hpp>
 
+#define rollAvgSize 20
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class personObj {
+
+
+private:
+	double rollAvgArr[rollAvgSize]; //PreviousMeasurementsArray
+	int rollAvgIndex = 0;
+	double rollAvgSum = 0;
+	int rollAvgCount = 0;
+
+
+
+
+
 public:
-    // member variables ///////////////////////////////////////////////////////////////////////////
-    std::vector<cv::Point> currentContour;
+// member variables ///////////////////////////////////////////////////////////////////////////
+	cv::Rect boundingRect;
+	cv::Point centerPosition;
 
-    cv::Rect currentBoundingRect;
+	double dblCurrentDiagonalSize = 0.0;
+	double dblCurrentAspectRatio = 0.0;
+	double dblCurrentArea = 0.0;
 
-    std::vector<cv::Point> centerPositions;
+	bool stillBeingTracked = false;
+	int numConsecutiveFramesWithoutAMatch = 0;
 
-    double dblCurrentDiagonalSize;
-    double dblCurrentAspectRatio;
 
-    bool blnCurrentMatchFoundOrNewBlob;
 
-    bool blnStillBeingTracked;
-
-    int intNumOfConsecutiveFramesWithoutAMatch;
-
-    cv::Point predictedNextPosition;
-    
-    // function prototypes ////////////////////////////////////////////////////////////////////////
-    personObj(std::vector<cv::Point> _contour);
-    void predictNextPosition(void);
+// function prototypes ////////////////////////////////////////////////////////////////////////
+	personObj(cv::Rect rectangleOfPerson);
+	void predictNextPosition(void);
+	double rollingAverageCalc(double newValue);
 
 };
 
