@@ -24,6 +24,7 @@ using namespace std;
 #define YELLOW cv::Scalar(0.0, 255.0, 255.0)
 #define GREEN cv::Scalar(0.0, 200.0, 0.0)
 #define RED cv::Scalar(0.0, 0.0, 255.0)
+#define BLUE cv::Scalar(255, 0.0, 0.0)
 
 //Tunable Parameters for object detection
 int THRESHOLD = 90; //default value of 30
@@ -31,9 +32,8 @@ int scFxThous = 1100; //value on trackbar is 1000x scaled up (default 1.1 is 110
 int MIN_NEIGHBORS = 3;
 int STOP_PROGRAM = 0;
 
-bool seeDebugFrames = true;
-
-
+bool seeDebugFramesOutput = true;
+bool displayFramesPerSecond = true;
 
 
 
@@ -58,12 +58,11 @@ void createTrackbars(){
 	createTrackbar( "scFxThous", trackbarWindowName, &scFxThous, 5000, on_trackbar ); //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
 	createTrackbar( "MIN_NEIGHBORS", trackbarWindowName, &MIN_NEIGHBORS, 10, on_trackbar );
 	createTrackbar( "STOP_PROGRAM", trackbarWindowName, &STOP_PROGRAM, 1, on_trackbar );
-
 }
 
 
 //attempt to find people using "Cascade Classifier" in the provides image
-void findBodies(cv::Mat img, personObj localPersonObj, CascadeClassifier tempBodyCascade)
+void findBodies(cv::Mat img, personObj personObjReference, CascadeClassifier tempBodyCascade)
 {
     Mat frame_gray;
     std::vector<Rect> rectangleBodies; //detected people from "Cascade Classifier" are represented as rectangles
@@ -78,25 +77,18 @@ void findBodies(cv::Mat img, personObj localPersonObj, CascadeClassifier tempBod
 //    body_cascade.detectMultiScale( img, bodies, 1.1, 1, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
     tempBodyCascade.detectMultiScale( img, rectangleBodies, (double)scFxThous/1000.0, MIN_NEIGHBORS, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
 	
-//    for ( size_t i = 0; i < bodies.size(); i++ )
-//    {
 	if(rectangleBodies.size() > 0) //person was detected
 	{
-//		//Point center( bodies[0].x + bodies[0].width/2, bodies[0].y + bodies[0].height/2 );
-//		//localPersonObj = new personObj(center, bodies[0].width, bodies[0].height);
-//		//ellipse( img, center, Size( bodies[0].width/2, bodies[0].height/2 ), 0, 0, 360, Scalar( 255, 0, 255 ), 4, 8, 0 );
-		
-		localPersonObj = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
-		int thickness=1, lineType=8, shift=0;
-		rectangle( img, rectangleBodies[0], GREEN, thickness, lineType, shift );
+		personObjReference = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
+		int thickness=2, lineType=8, shift=0;
+		rectangle( img, rectangleBodies[0], BLUE, thickness, lineType, shift );
 	}
-//    }
 
 }
 
 
 
-void cameraOperations(int cameraNum, int argc, const char** argv)
+void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 {
 	int tick = 0;
 	int fps = 0;
@@ -105,31 +97,19 @@ void cameraOperations(int cameraNum, int argc, const char** argv)
 	cv::Mat frame1;
 	cv::Mat frame2;
 
-	cout << "Camera Thread " << cameraNum <<" Started" << endl;
+	cout << "Thread Start " << cameraNum << endl;
 
 	/* Using Marc's Cascade Classifier in a thread-safe manner */
 	String body_cascade_name;
 	CascadeClassifier body_cascade;
 
-	
-	CommandLineParser parser(argc, argv,
-	"{help h||}"
-	"{body_cascade|haarcascade_upperbody.xml|}");
-cout << "test1234" << endl;
-	parser.about( "\nThis program demonstrates using the cv::CascadeClassifier class to detect objects (Face + eyes) in a video stream.\n"
-		  "You can use Haar or LBP features.\n\n" );
-	parser.printMessage();
-	body_cascade_name = parser.get<String>("body_cascade");
+	if (!body_cascade.read(XmlClassFile.getFirstTopLevelNode()))
+		cout << "ERROR: Cascade XML CANNOT LOAD in thread:" << cameraNum << endl;
 
-	//-- 1. Load the cascades
-	cout << "Loading Cascade Classifier" << endl;
-	body_cascade.load(body_cascade_name);
-	cout << "Cascade Classifier Loaded" << endl;
-
+	cout << "XML loaded thread:" << cameraNum << endl;
 
 
 	personObj personFound( cv::Rect(0,0,0,0) ); //create public personObj using constructor
-
 	
 	//Set source of video: "camera 0" is the builtin laptop webcam, "camera 1" is usb webcam
 	VideoCapture vc1(cameraNum); //Open the Default Camera
@@ -146,7 +126,7 @@ cout << "test1234" << endl;
 	//convey which thread is being run at a time, but only every 1000ms
 	unsigned long temp1 = 0;
 
-	cout << "VideoCapture Opened" << endl;
+	cout << "Cam Open Thread:" << cameraNum << endl;
 
 
         while(true)
@@ -171,11 +151,6 @@ cout << "test1234" << endl;
 		cv::threshold(imgDiff, imgThreshDiff, THRESHOLD, 255.0, CV_THRESH_BINARY);
 		cv::threshold(frame2, imgThreshNorm, THRESHOLD, 255.0, CV_THRESH_BINARY);
 
-		//give video window a title to separate different cameras when called on different threads
-		string windowName = "cam" + to_string(cameraNum) + ": windowName1:DifferenceAndThresh";
-		if(seeDebugFrames)
-			cv::imshow(windowName, imgDiff);
-
 
 //Using Marc's method of "Cascade Classifier"
 
@@ -183,13 +158,13 @@ cout << "test1234" << endl;
 		findBodies(imgThreshDiff, personFound, body_cascade);
 		findBodies(imgThreshNorm, personFound, body_cascade);
 
-		//Show detected objects
-		string windowName1 = "cam" + to_string(cameraNum) + ": windowName2:imgThreshDiff";
-		if(seeDebugFrames)
-			cv::imshow(windowName1, imgThreshDiff);
-		string windowName2 = "cam" + to_string(cameraNum) + ": windowName3:imgThreshNorm";
-		if(seeDebugFrames)
+		//Show detected objects using "imshow()"
+		if(seeDebugFramesOutput)
+		{
+			//give window a title to separate different cameras when called on different threads
+			string windowName2 = "cam" + to_string(cameraNum) + ": windowName3:imgThreshNorm";
 			cv::imshow(windowName2, imgThreshNorm);
+		}
 		
 
 	        frameCounter++; //update frame count value
@@ -202,19 +177,26 @@ cout << "test1234" << endl;
 		    frameCounter = 0;
 		}
 
-
-		if(temp1 > 20)
+		if(displayFramesPerSecond == true)
 		{
-			//convey which thread is being run at a time, but only every 1000ms
-			cout << "camNum: " << cameraNum << "fps: " << fps << endl;
-			temp1 = 0;
+			if(temp1 > 50)
+			{
+				//convey which thread is being run at a time, but only every 1000ms
+				cout << "camNum: " << cameraNum << "fps: " << fps << endl;
+				temp1 = 0;
+			}
+			firstTimeThrough = false;
+			temp1++;
 		}
 
 
-		firstTimeThrough = false;
-		temp1++;
-
-		cv::waitKey(1); //delay for 1 milliseconds to keep "imshow()" from locking up
+		//delay for 1 milliseconds to keep "imshow()" from locking up
+		char c = (char)waitKey(1);
+		if( c == 27 || c == 'q' || c == 'Q' )
+		{
+			cout << "Escape Pressed - Exiting Program" << endl;
+			std::terminate();
+		}
 
 		if(STOP_PROGRAM > 0) //if user selects to terminate/stop the program, stop all threads
 			std::terminate();
@@ -224,7 +206,7 @@ cout << "test1234" << endl;
 
 
 
-int main( int argc, const char** argv )
+int main(void)
 {
 	//run camera operations in separate threads
 	//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
@@ -234,8 +216,25 @@ int main( int argc, const char** argv )
 	//create slider bars for object filtering
 	createTrackbars();
 
-	std::thread first (cameraOperations, camera0, argc, argv); //spawn new thread that calls cameraOperations(camera0)
-	//std::thread second (cameraOperations, camera1, argc, argv); //spawn new thread that calls cameraOperations(camera1)
+
+//https://stackoverflow.com/questions/7285480/opencv-cascadeclassifier-c-interface-in-multiple-threads
+	//If you are working with LBP cascade of with Haar cascade stored in new format 
+	//	then you can avoid reading cascade from file system for each new thread:
+//https://stackoverflow.com/questions/15429035/multithreaded-face-detection-stops-working
+	//Further detectMultiScale is already multithreaded / parallelized. In the docs it says
+	//	The function is parallelized with the TBB library.
+	//Load cascade into memory:
+//https://docs.opencv.org/2.4/modules/core/doc/xml_yaml_persistence.html
+	//Load XML file into code: FileStorage fs("test.yml", FileStorage::READ);
+	cv::FileStorage CascadeClassFileXML("haarcascade_upperbody.xml", cv::FileStorage::READ);
+	if (!CascadeClassFileXML.isOpened())
+	{
+		cout << "ERROR: XML CascadeClassifier not loaded correctly" << endl;
+		return -1;
+	}
+
+	std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
+	std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 	cout << "camera threads running" << endl;
 		
 	//Makes the main thread wait for the new thread to finish execution, therefore blocks its own execution.
