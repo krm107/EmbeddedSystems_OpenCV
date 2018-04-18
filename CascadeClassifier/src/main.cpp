@@ -71,7 +71,7 @@ void createTrackbars(){
 
 
 //attempt to find people using "Cascade Classifier" in the provides image
-void findBodies(cv::Mat img, personObj personObjReference, CascadeClassifier tempBodyCascade)
+void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier tempBodyCascade)
 {
     Mat frame_gray;
     std::vector<Rect> rectangleBodies; //detected people from "Cascade Classifier" are represented as rectangles
@@ -87,13 +87,14 @@ void findBodies(cv::Mat img, personObj personObjReference, CascadeClassifier tem
     tempBodyCascade.detectMultiScale( img, rectangleBodies, (double)scFxThous/1000.0, MIN_NEIGHBORS, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
 
     static int numFramesNotDetectingPerson = 0;
+    numFramesNotDetectingPerson++;
 
 	if(rectangleBodies.size() > 0) //person was detected
 	{
-		personObjReference.stillBeingTracked = true;
 		personObjReference = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
+		personObjReference.stillBeingTracked = true;
 		int thickness=2, lineType=8, shift=0;
-		rectangle( img, rectangleBodies[0], BLUE, thickness, lineType, shift );
+		rectangle( img, rectangleBodies[5], BLUE, thickness, lineType, shift );
 	}
 	else if(numFramesNotDetectingPerson > NUM_NOT_DETECTED) //wait number of frames before saying person is not detected
 	{
@@ -116,9 +117,9 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 	cv::Mat frame2;
 	std::time_t timeFirstPersonObjDetected = std::time(0);
 	float state = 0.0; //state machine 1)Nothing2)Takepicture6secondsDetected3)Picture3secondsMovingCloser4)VideoMovingCloserTime
-	double LastPersonArea = 0.0; //used to detect area of person's rectangle on last iteration of state machine
-	double rollAvgRectArea;
-	double rectMovingCloserDiff;
+	double rollAvgRectAreaInitial = 0.0; //used to detect area of person's rectangle on last iteration of state machine
+	double rollAvgRectAreaNew = 0.0;
+	double rollAvgNewMinInitial = 0.0;
 
 
 	cout << "Thread Start " << cameraNum << endl;
@@ -156,8 +157,8 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 	VideoWriter outputVideo("outputVideo.avi", CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
 
 
-        while(true)
-        {
+	while(true)
+	{
 		if(firstTimeThrough==true)
 		{
 			vc1 >> frame1; //get a first frame from camera to get difference of images
@@ -188,73 +189,62 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 		//state machine logic for detected person approaching camera
 		if(personFound.stillBeingTracked == true)
 		{
-			//Only compare object moving closer in mode 2.2 or 3 or 4
-			if(LastPersonArea != 0.0)
-			{
-				//Compute area of detected person rectangle between the last time a person was detected
-				//	This signifies the person is getting large from the camera view and must be approaching the camera
-				rectMovingCloserDiff = personFound.dblCurrentArea - LastPersonArea;
-				rollAvgRectArea = personFound.rollingAverageCalc(rectMovingCloserDiff);
-			}
-
 			if(state >= 2.0 && state < 3.0)
 			{
 				if(state == 2.0)
 				{
-					LastPersonArea = personFound.dblCurrentArea;
+					rollAvgRectAreaInitial = personFound.dblCurrentArea;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.1;
-					break;
+					continue;
 				}
+
+				rollAvgRectAreaNew = personFound.rollingAverageCalc(personFound.dblCurrentArea);
+				rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
 
 				std::time_t timePresent1 = std::time(0);
 				//STATE2: save image every 6 seconds
 				if (timePresent1 - timeFirstPersonObjDetected >= 6)
 				{
+					rollAvgRectAreaInitial = rollAvgRectAreaNew;
 					cout << "S2: 6secPic" << endl;
 					imwrite("outputPicture.jpg", imgThreshNorm);
+					timeFirstPersonObjDetected = std::time(0);
 					state = 2.2;
 				}
 			}
-			else if( ( state == 2.2  &&  rollAvgRectArea >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
+			else if( ( state == 2.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| ( state >= 3.0 && state < 4.0 ) )
 			{
 				if(state == 2.2)
 				{
-					LastPersonArea = personFound.dblCurrentArea;
+					rollAvgRectAreaInitial = personFound.dblCurrentArea;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 3.1;
-					break;
+					continue;
 				}
+
+				rollAvgRectAreaNew = personFound.rollingAverageCalc(personFound.dblCurrentArea);
+				rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
 
 				std::time_t timePresent2 = std::time(0);
 				//STATE3: moving toward camera; take higher resolution picture every 3 seconds
 				if (timePresent2 - timeFirstPersonObjDetected >= 3)
 				{
+					rollAvgRectAreaInitial = rollAvgRectAreaNew;
 					cout << "S3: 3secPic" << endl;
 					imwrite("outputPicture.jpg", imgThreshNorm);
+					timeFirstPersonObjDetected = std::time(0);
 					state = 3.2;
 				}
 			}
-			else if( ( state == 3.2  &&  rollAvgRectArea >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
+			else if( ( state == 3.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| (state >= 4.0) )
 			{
-				if(state == 3.2)
-				{
-					LastPersonArea = personFound.dblCurrentArea;
-					timeFirstPersonObjDetected = std::time(0);
-					state = 4.1;
-					break;
-				}
-
-				std::time_t timePresent2 = std::time(0);
-				//STATE4: moving toward camera; save frames to video (.AVI format video)
-				if (timePresent2 - timeFirstPersonObjDetected >= 3)
-				{
-					cout << "S4: Video" << endl;
-					outputVideo.write(imgThreshNorm);
-					state = 4.2;
-				}
+				cout << "S4: Video" << endl;
+				outputVideo.write(imgThreshNorm);
+				timeFirstPersonObjDetected = std::time(0);
+				state = 4.2;
 			}
 			else
 			{
@@ -316,7 +306,7 @@ int main(void)
 	//run camera operations in separate threads
 	//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
 	int camera0 = 0;
-	int camera1 = 1;
+	int camera1 = 0;
 
 	//create slider bars for object filtering
 	createTrackbars();
@@ -338,13 +328,13 @@ int main(void)
 		return -1;
 	}
 
-	std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
+	//std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
 	std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 	cout << "camera threads running" << endl;
 
 	//Makes the main thread wait for the new thread to finish execution, therefore blocks its own execution.
-	first.join();
-	//second.join();
+	//first.join();
+	second.join();
 
 	return 0;
 }
