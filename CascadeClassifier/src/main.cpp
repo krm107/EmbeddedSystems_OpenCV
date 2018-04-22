@@ -11,6 +11,9 @@
 #include <opencv2/video.hpp>
 #include <opencv2/videoio.hpp>
 #include "personObj.h"
+#include <fstream> //used to write to text file using "std::ofstream"
+#include<sstream> //used to create a directory for sotring pictures and video using "stringstream"
+#include <sys/stat.h> //used to detect if directories for pictures and video were already created
 
 
 //Working with Eclipse and OpenCV3.0
@@ -22,6 +25,8 @@ using namespace cv;
 using namespace std;
 
 
+//#define FRAME_WIDTH 160
+//#define FRAME_HEIGHT 120
 #define FRAME_WIDTH 320
 #define FRAME_HEIGHT 240
 #define BLACK cv::Scalar(0.0, 0.0, 0.0)
@@ -32,16 +37,20 @@ using namespace std;
 #define BLUE cv::Scalar(255, 0.0, 0.0)
 
 //Tunable Parameters for object detection
-int THRESHOLD = 90; //default value of 30
+int THRESHOLD = 110; //default value of 30
 int scFxThous = 1100; //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
-int MIN_NEIGHBORS = 3;
-int RECT_AREA_SIZE_MOVING_CLOSER = 2000; //value on trackbar is 1000x scaled up (default 2.0 is 2000 scaled)
-int NUM_NOT_DETECTED = 50;
+int MIN_NEIGHBORS = 5;
+int RECT_AREA_SIZE_MOVING_CLOSER = 300; //value on trackbar is 1000x scaled up (default 2.0 is 2000 scaled)
+int NUM_NOT_DETECTED = 100;
 int STOP_PROGRAM = 0;
 
 bool seeDebugFramesOutput = true;
 bool displayFramesPerSecond = true;
 
+string videoFileName;
+
+// Create the outputfilestream
+std::ofstream txtLogFileWrite("txtLogFileWrite.txt");
 
 
 //This function gets called whenever a trackbar position is changed
@@ -49,12 +58,15 @@ void on_trackbar( int, void* ){ }
 
 
 //trackbars are used to tune the parameters for detecting after applying a "convex hull"
-void createTrackbars(){
+void createTrackbars()
+{
+	std::time_t timeNow = std::time(NULL);
+	txtLogFileWrite << "trackbarsChanged: " << to_string(timeNow) << endl;
 
 	string trackbarWindowName = "Trackbars";
 
 	//create window for trackbars
-    	namedWindow(trackbarWindowName,0);
+	namedWindow(trackbarWindowName,0);
 	//create trackbars and insert them into window
 	//3 parameters are:
 	//the address of the variable that is changing when the trackbar is moved(eg.THRESHOLD),
@@ -64,8 +76,8 @@ void createTrackbars(){
 	createTrackbar( "THRESHOLD", trackbarWindowName, &THRESHOLD, 255, on_trackbar );
 	createTrackbar( "scFxThous", trackbarWindowName, &scFxThous, 5000, on_trackbar ); //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
 	createTrackbar( "MIN_NEIGHBORS", trackbarWindowName, &MIN_NEIGHBORS, 10, on_trackbar );
-	createTrackbar( "RECT_AREA_CLOSER", trackbarWindowName, &RECT_AREA_SIZE_MOVING_CLOSER, 10000, on_trackbar );
-	createTrackbar( "NUM_NOT_DETECTED", trackbarWindowName, &NUM_NOT_DETECTED, 1000, on_trackbar );
+	createTrackbar( "RECT_AREA_CLOSER", trackbarWindowName, &RECT_AREA_SIZE_MOVING_CLOSER, 3000, on_trackbar );
+	createTrackbar( "NUM_NOT_DETECTED", trackbarWindowName, &NUM_NOT_DETECTED, 3000, on_trackbar );
 	createTrackbar( "STOP_PROGRAM", trackbarWindowName, &STOP_PROGRAM, 1, on_trackbar );
 }
 
@@ -86,23 +98,24 @@ void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier te
 //    body_cascade.detectMultiScale( img, bodies, 1.1, 1, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
     tempBodyCascade.detectMultiScale( img, rectangleBodies, (double)scFxThous/1000.0, MIN_NEIGHBORS, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
 
-    static int numFramesNotDetectingPerson = 0;
-    numFramesNotDetectingPerson++;
-
 	if(rectangleBodies.size() > 0) //person was detected
 	{
 		personObjReference = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
 		personObjReference.stillBeingTracked = true;
 		int thickness=2, lineType=8, shift=0;
 		rectangle( img, rectangleBodies[5], BLUE, thickness, lineType, shift );
+		personObjReference.numConsecutiveFramesWithoutAMatch = 0;
 	}
-	else if(numFramesNotDetectingPerson > NUM_NOT_DETECTED) //wait number of frames before saying person is not detected
+	else if(personObjReference.numConsecutiveFramesWithoutAMatch > NUM_NOT_DETECTED) //wait number of frames before saying person is not detected
 	{
 		//person not found in frame --> set flags to indicate person was not found
 		personObjReference.stillBeingTracked = false;
+		personObjReference.numConsecutiveFramesWithoutAMatch = 0;
+	}
+	else //person not detected using "tempBodyCascade.detectMultiScale()"
+	{
 		personObjReference.numConsecutiveFramesWithoutAMatch++;
 	}
-	else{}
 }
 
 
@@ -153,9 +166,6 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 	cout << "Cam Open Thread:" << cameraNum << endl;
 
-	//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-	VideoWriter outputVideo("outputVideo.avi", CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
-
 
 	while(true)
 	{
@@ -186,16 +196,20 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 		}
 
 
-		//state machine logic for detected person approaching camera
+		//BEGIN STATE MACHINE LOGIC:
+		//	state machine logic for detected person approaching camera
 		if(personFound.stillBeingTracked == true)
 		{
 			if(state >= 2.0 && state < 3.0)
 			{
 				if(state == 2.0)
 				{
+					//find baseline detected person area the first time in State#2
 					rollAvgRectAreaInitial = personFound.dblCurrentArea;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.1;
+					std::time_t timeNow = std::time(NULL);
+					txtLogFileWrite << "State2Init: " << to_string(timeNow) << endl;
 					continue;
 				}
 
@@ -204,23 +218,29 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 				std::time_t timePresent1 = std::time(0);
 				//STATE2: save image every 6 seconds
-				if (timePresent1 - timeFirstPersonObjDetected >= 6)
+				if (timePresent1 - timeFirstPersonObjDetected >= 2)
 				{
 					rollAvgRectAreaInitial = rollAvgRectAreaNew;
-					cout << "S2: 6secPic" << endl;
-					imwrite("outputPicture.jpg", imgThreshNorm);
+					cout << "S2: 6secPic" << "rollDiff" << rollAvgNewMinInitial << "rollInit" << rollAvgRectAreaInitial << endl;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.2;
+					std::time_t timeNow = std::time(NULL);
+					txtLogFileWrite << "State2: 6SecPic: " << to_string(cameraNum) << to_string(timeNow) << endl;
+					string pictureFileName = "./outputPictures/S2outputPic:" + to_string(cameraNum) + to_string(timeNow) + ".jpg";
+					imwrite(pictureFileName, frame1);
 				}
 			}
-			else if( ( state == 2.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
+			if( ( state == 2.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| ( state >= 3.0 && state < 4.0 ) )
 			{
 				if(state == 2.2)
 				{
+					//find baseline detected person area the first time in State#3
 					rollAvgRectAreaInitial = personFound.dblCurrentArea;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 3.1;
+					std::time_t timeNow = std::time(NULL);
+					txtLogFileWrite << "State3Init: " << to_string(timeNow) << endl;
 					continue;
 				}
 
@@ -229,26 +249,34 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 				std::time_t timePresent2 = std::time(0);
 				//STATE3: moving toward camera; take higher resolution picture every 3 seconds
-				if (timePresent2 - timeFirstPersonObjDetected >= 3)
+				if (timePresent2 - timeFirstPersonObjDetected >= 1)
 				{
 					rollAvgRectAreaInitial = rollAvgRectAreaNew;
 					cout << "S3: 3secPic" << endl;
-					imwrite("outputPicture.jpg", imgThreshNorm);
 					timeFirstPersonObjDetected = std::time(0);
 					state = 3.2;
+					std::time_t timeNow = std::time(NULL);
+					txtLogFileWrite << "State3: 3SecPic: " << to_string(cameraNum) << to_string(timeNow) << endl;
+					string pictureFileName = "./outputPictures/S3outputPic:" + to_string(cameraNum) + to_string(timeNow) + ".jpg";
+					imwrite(pictureFileName, frame1);
 				}
 			}
-			else if( ( state == 3.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
+			if( ( state == 3.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| (state >= 4.0) )
 			{
+				if(state == 3.2) //only create 1 video file when transitioning from state 3 to state 4
+				{
+					//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+					videoFileName = "./outputVideo/VideoCam" + to_string(cameraNum) + to_string(timeNow) + ".avi";
+					state = 4.0;
+				}
+
 				cout << "S4: Video" << endl;
-				outputVideo.write(imgThreshNorm);
-				timeFirstPersonObjDetected = std::time(0);
-				state = 4.2;
-			}
-			else
-			{
-				//never gets here
+				std::time_t timeNow = std::time(NULL);
+				timeFirstPersonObjDetected = timeNow;
+				txtLogFileWrite << "State4: Video: " << to_string(timeNow) << endl;
+				VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
+				outputVideo.write(frame1);
 			}
 
 		}
@@ -303,10 +331,36 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 int main(void)
 {
+	//identify which cameras are detected over USB
+	cv::VideoCapture temp_camera;
+	int maxTested = 10;
+	for (int i = 0; i < maxTested; i++)
+	{
+		cv::VideoCapture temp_camera(i);
+		bool res = (temp_camera.isOpened());
+		temp_camera.release();
+		if (res)
+		{
+			cout << "CamDetected:" << i << endl;
+		}
+	}
+
+
+	//delete folder already in existence with old contents
+	system("rm -r ./outputPictures");
+	system("rm -r ./outputVideo");
+	//create new folder that is empty
+	system("mkdir -p ./outputPictures");
+	system("mkdir -p ./outputVideo");
+
+
 	//run camera operations in separate threads
 	//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
-	int camera0 = 0;
-	int camera1 = 0;
+	int camera0 = 1; //default: 0
+	int camera1 = 1; //default: 1
+	int camera2 = 2; //default: 2
+	int camera3 = 3; //default: 3
+	int camnum = 1; //how many cameras are used (1,2,3, or 4)?
 
 	//create slider bars for object filtering
 	createTrackbars();
@@ -328,13 +382,33 @@ int main(void)
 		return -1;
 	}
 
-	//std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
-	std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
+	std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
+	first.join(); //main loop will not "return 0" until the thread stops
+
+	if(camnum>1)
+	{
+		std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
+		second.join(); //main loop will not "return 0" until the thread stops
+	}
+	if(camnum>2)
+	{
+		std::thread third (cameraOperations, camera2, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
+		third.join(); //main loop will not "return 0" until the thread stops
+	}
+	if(camnum>3)
+	{
+		std::thread fourth (cameraOperations, camera3, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
+		fourth.join();
+	}
 	cout << "camera threads running" << endl;
 
 	//Makes the main thread wait for the new thread to finish execution, therefore blocks its own execution.
-	//first.join();
-	second.join();
+//	if(camnum>1)
+//		second.join();
+//	if(camnum>2)
+//		third.join();
+//	if(camnum>3)
+//		fourth.join();
 
 	return 0;
 }

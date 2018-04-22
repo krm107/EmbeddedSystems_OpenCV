@@ -25,8 +25,6 @@ personObj::personObj(cv::Rect rectangleOfPerson) {
 		dblCurrentArea = rectangleOfPerson.width * rectangleOfPerson.height;
 
 	stillBeingTracked = false;
-
-	int numConsecutiveFramesWithoutAMatch = 0;
 }
 
 
