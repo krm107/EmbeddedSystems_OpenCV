@@ -15,7 +15,7 @@ private:
 	double rollAvgArr[rollAvgSize]; //PreviousMeasurementsArray
 	int rollAvgIndex = 0;
 	double rollAvgSum = 0;
-	int rollAvgCount = 0;
+
 
 
 
@@ -32,7 +32,7 @@ public:
 	bool stillBeingTracked = false;
 	int numConsecutiveFramesWithoutAMatch = 0;
 
-
+	int rollAvgCount = 0;
 
 // function prototypes ////////////////////////////////////////////////////////////////////////
 	personObj(cv::Rect rectangleOfPerson);
