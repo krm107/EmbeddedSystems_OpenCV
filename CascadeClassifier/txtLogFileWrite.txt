@@ -1,3 +1,27 @@
-trackbarsChanged: 1524440173
-State2Init: 1524440180
-State2: 6SecPic: 11524440182
+trackbarsChanged: 1524442753
+State2Init: 2018:04:22 - 08:19:14
+State2: 6SecPic T1:2018:04:22 - 08:19:16
+State2: 6SecPic T1:2018:04:22 - 08:19:18
+State2: 6SecPic T1:2018:04:22 - 08:19:20
+State2: 6SecPic T1:2018:04:22 - 08:19:22
+State2: 6SecPic T1:2018:04:22 - 08:19:24
+State2: 6SecPic T1:2018:04:22 - 08:19:26
+State2Init: 2018:04:22 - 08:19:37
+State2: 6SecPic T1:2018:04:22 - 08:19:39
+State2Init: 2018:04:22 - 08:19:56
+State2: 6SecPic T1:2018:04:22 - 08:19:58
+State2: 6SecPic T1:2018:04:22 - 08:20:00
+State2Init: 2018:04:22 - 08:20:15
+State2: 6SecPic T1:2018:04:22 - 08:20:17
+State2: 6SecPic T1:2018:04:22 - 08:20:19
+State2: 6SecPic T1:2018:04:22 - 08:20:21
+State2: 6SecPic T1:2018:04:22 - 08:20:23
+State2Init: 2018:04:22 - 08:20:24
+State2: 6SecPic T1:2018:04:22 - 08:20:26
+State2: 6SecPic T1:2018:04:22 - 08:20:28
+State2: 6SecPic T1:2018:04:22 - 08:20:30
+State2: 6SecPic T1:2018:04:22 - 08:20:32
+State2: 6SecPic T1:2018:04:22 - 08:20:34
+State2: 6SecPic T1:2018:04:22 - 08:20:36
+State2: 6SecPic T1:2018:04:22 - 08:20:38
+State2: 6SecPic T1:2018:04:22 - 08:20:40

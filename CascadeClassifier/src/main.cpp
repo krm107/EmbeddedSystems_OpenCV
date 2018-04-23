@@ -119,6 +119,18 @@ void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier te
 }
 
 
+std::string convertDateTime(std::time_t rawtime)
+{
+	  struct tm * timeinfo;
+	  char buffer[80];
+	  time (&rawtime);
+	  timeinfo = localtime(&rawtime);
+
+	  strftime(buffer, sizeof(buffer), "%Y:%m:%d - %I:%M:%S",timeinfo);
+	  std::string str(buffer);
+	  return str;
+}
+
 
 void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 {
@@ -208,8 +220,7 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					rollAvgRectAreaInitial = personFound.dblCurrentArea;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.1;
-					std::time_t timeNow = std::time(NULL);
-					txtLogFileWrite << "State2Init: " << to_string(timeNow) << endl;
+					txtLogFileWrite << "State2Init: " << convertDateTime(timeFirstPersonObjDetected) << endl;
 					continue;
 				}
 
@@ -221,12 +232,12 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 				if (timePresent1 - timeFirstPersonObjDetected >= 2)
 				{
 					rollAvgRectAreaInitial = rollAvgRectAreaNew;
-					cout << "S2: 6secPic" << "rollDiff" << rollAvgNewMinInitial << "rollInit" << rollAvgRectAreaInitial << endl;
+					cout << "S2: 6secPic" << "Diff" << rollAvgNewMinInitial << "Init" << rollAvgRectAreaInitial << endl;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.2;
 					std::time_t timeNow = std::time(NULL);
-					txtLogFileWrite << "State2: 6SecPic: " << to_string(cameraNum) << to_string(timeNow) << endl;
-					string pictureFileName = "./outputPictures/S2outputPic:" + to_string(cameraNum) + to_string(timeNow) + ".jpg";
+					txtLogFileWrite << "State2: 6SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
+					string pictureFileName = "./outputPictures/S2outputPic T" + to_string(cameraNum) + ":" + convertDateTime(timeNow) + ".jpg";
 					imwrite(pictureFileName, frame1);
 				}
 			}
@@ -240,7 +251,7 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					timeFirstPersonObjDetected = std::time(0);
 					state = 3.1;
 					std::time_t timeNow = std::time(NULL);
-					txtLogFileWrite << "State3Init: " << to_string(timeNow) << endl;
+					txtLogFileWrite << "State3Init: " << convertDateTime(timeFirstPersonObjDetected) << endl;
 					continue;
 				}
 
@@ -256,25 +267,26 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					timeFirstPersonObjDetected = std::time(0);
 					state = 3.2;
 					std::time_t timeNow = std::time(NULL);
-					txtLogFileWrite << "State3: 3SecPic: " << to_string(cameraNum) << to_string(timeNow) << endl;
-					string pictureFileName = "./outputPictures/S3outputPic:" + to_string(cameraNum) + to_string(timeNow) + ".jpg";
+					txtLogFileWrite << "State3: 3SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
+					string pictureFileName = "./outputPictures/S3outputPic T" + to_string(cameraNum) + ":" + convertDateTime(timeNow) + ".jpg";
 					imwrite(pictureFileName, frame1);
 				}
 			}
 			if( ( state == 3.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| (state >= 4.0) )
 			{
+				std::time_t timeNow = std::time(NULL);
+
 				if(state == 3.2) //only create 1 video file when transitioning from state 3 to state 4
 				{
 					//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-					videoFileName = "./outputVideo/VideoCam" + to_string(cameraNum) + to_string(timeNow) + ".avi";
+					videoFileName = "./outputVideo/VideoCam T" + to_string(cameraNum) + convertDateTime(timeNow) + ".avi";
 					state = 4.0;
 				}
 
 				cout << "S4: Video" << endl;
-				std::time_t timeNow = std::time(NULL);
 				timeFirstPersonObjDetected = timeNow;
-				txtLogFileWrite << "State4: Video: " << to_string(timeNow) << endl;
+				txtLogFileWrite << "State4: Video T" << to_string(cameraNum) << ":" << to_string(timeNow) << endl;
 				VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
 				outputVideo.write(frame1);
 			}
