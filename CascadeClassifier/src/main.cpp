@@ -38,7 +38,16 @@ using namespace std;
 
 
 //how many cameras are used (1,2,3, or 4)?
-//#define cameras12		//cameras12 //cameras123 //cameras1234
+#define cameras123		//cameras1 //cameras12 //cameras123 //cameras1234
+
+//run camera operations in separate threads
+//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
+int camera0 = 0; //default: 0
+int camera1 = 1; //default: 1
+int camera2 = 2; //default: 2
+int camera3 = 3; //default: 3
+
+
 
 
 //Tunable Parameters for object detection
@@ -413,14 +422,6 @@ int main(void)
 	system("mkdir -p ./outputPictures");
 	system("mkdir -p ./outputVideo");
 
-
-	//run camera operations in separate threads
-	//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
-	int camera0 = 1; //default: 0
-	int camera1 = 1; //default: 1
-	int camera2 = 2; //default: 2
-	int camera3 = 3; //default: 3
-
 	//create slider bars for object filtering
 	createTrackbars();
 
@@ -440,16 +441,22 @@ int main(void)
 		cout << "ERROR: XML CascadeClassifier not loaded correctly" << endl;
 		return -1;
 	}
-
+#ifdef cameras1
 	std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
-
+#endif
 #ifdef cameras12
+		std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
 		std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 #endif
 #ifdef cameras123
+		std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
+		std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 		std::thread third (cameraOperations, camera2, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 #endif
 #ifdef cameras1234
+		std::thread first (cameraOperations, camera0, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera0)
+		std::thread second (cameraOperations, camera1, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
+		std::thread third (cameraOperations, camera2, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 		std::thread fourth (cameraOperations, camera3, CascadeClassFileXML); //spawn new thread that calls cameraOperations(camera1)
 #endif
 
@@ -459,15 +466,22 @@ int main(void)
 
 
 	//Makes the main thread wait for the new thread to finish execution, therefore blocks its own execution.
+#ifdef cameras1
 	first.join(); //main loop will not "return 0" until the thread stops
-
+#endif
 #ifdef cameras12
+	first.join(); //main loop will not "return 0" until the thread stops
 	second.join(); //main loop will not "return 0" until the thread stops
 #endif
 #ifdef cameras123
+	first.join(); //main loop will not "return 0" until the thread stops
+	second.join(); //main loop will not "return 0" until the thread stops
 	third.join(); //main loop will not "return 0" until the thread stops
 #endif
 #ifdef cameras1234
+	first.join(); //main loop will not "return 0" until the thread stops
+	second.join(); //main loop will not "return 0" until the thread stops
+	third.join(); //main loop will not "return 0" until the thread stops
 	fourth.join(); //main loop will not "return 0" until the thread stops
 #endif
 
