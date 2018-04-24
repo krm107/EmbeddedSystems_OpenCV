@@ -101,7 +101,7 @@ void createTrackbars()
 
 
 //attempt to find people using "Cascade Classifier" in the provides image
-void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier tempBodyCascade, float state)
+void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier tempBodyCascade, float state, int cameraNumber)
 {
     Mat frame_gray;
     std::vector<Rect> rectangleBodies; //detected people from "Cascade Classifier" are represented as rectangles
@@ -134,6 +134,7 @@ void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier te
 		//person not found in frame --> set flags to indicate person was not found
 		personObjReference.stillBeingTracked = false;
 		personObjReference.numConsecutiveFramesWithoutAMatch = 0;
+		cout << "ResettingStateMachine T" << cameraNumber << endl;
 	}
 	else //person not detected using "tempBodyCascade.detectMultiScale()"
 	{
@@ -222,7 +223,7 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 //Using Marc's method of "Cascade Classifier"
 
 		//Detect and draw bodies using "Cascade Classifier"
-		findBodies(imgThreshNorm, personFound, body_cascade, state);
+		findBodies(imgThreshNorm, personFound, body_cascade, state, cameraNum);
 
 		//Show detected objects using "imshow()"
 		if(seeDebugFramesOutput)
@@ -415,7 +416,7 @@ int main(void)
 
 	//run camera operations in separate threads
 	//Thread info from "http://www.cplusplus.com/reference/thread/thread/"
-	int camera0 = 0; //default: 0
+	int camera0 = 1; //default: 0
 	int camera1 = 1; //default: 1
 	int camera2 = 2; //default: 2
 	int camera3 = 3; //default: 3
