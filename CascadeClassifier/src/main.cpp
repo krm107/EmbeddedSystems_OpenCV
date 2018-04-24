@@ -237,6 +237,7 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 		//	state machine logic for detected person approaching camera
 		if(personFound.stillBeingTracked == true)
 		{
+
 			if(state >= 2.0 && state < 3.0)
 			{
 				std::time_t timePresent2 = std::time(0);
@@ -323,25 +324,18 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 				//only create 1 video file when transitioning from state 3 to state 4
 				if(state < 4.1)
 				{
-					state = 4.1;
-					cout << "S4Init T" << cameraNum << endl;
-					txtLogFileWrite << "State2Init T" << to_string(cameraNum) << convertDateTime(timeNow) << endl;
-				}
-				if(state > 4.0 && state < 4.2)
-				{
 					txtLogFileWrite << "State4: Video T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
 					cout << "S4:Video T" << cameraNum << endl;
 					videoFileName = "./outputVideo/VideoCam T" + to_string(cameraNum) + convertDateTime(timeNow) + ".avi";
 					//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 					VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
-					myVideoWriter = outputVideo;
+					myVideoWriter = outputVideo; //Copy reference to global "Videowriter" object (required since video name changes on each state3->4 transition)
 					state = 4.5;
 				}
 
-
-//				outputVideo.write(frame1);
 				myVideoWriter.write(frame1);
 			}
+
 
 		}
 		else //personFound.stillBeingTracked == false
