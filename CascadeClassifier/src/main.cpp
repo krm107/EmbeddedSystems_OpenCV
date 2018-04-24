@@ -32,13 +32,13 @@ using namespace std;
 #define BLACK cv::Scalar(0.0, 0.0, 0.0)
 #define WHITE cv::Scalar(255.0, 255.0, 255.0)
 #define YELLOW cv::Scalar(0.0, 255.0, 255.0)
-#define GREEN cv::Scalar(0.0, 200.0, 0.0)
+#define GREEN cv::Scalar(0.0, 255.0, 0.0)
 #define RED cv::Scalar(0.0, 0.0, 255.0)
-#define BLUE cv::Scalar(255, 0.0, 0.0)
+#define BLUE cv::Scalar(255.0, 0.0, 0.0)
 
 
 //how many cameras are used (1,2,3, or 4)?
-#define cameras12		//cameras12 //cameras123 //cameras1234
+//#define cameras12		//cameras12 //cameras123 //cameras1234
 
 
 //Tunable Parameters for object detection
@@ -63,7 +63,7 @@ int STOP_PROGRAM = 0;
 //*/
 
 bool seeDebugFramesOutput = true;
-bool displayFramesPerSecond = true;
+bool displayFramesPerSecond = false;
 
 string videoFileName;
 
@@ -101,7 +101,7 @@ void createTrackbars()
 
 
 //attempt to find people using "Cascade Classifier" in the provides image
-void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier tempBodyCascade)
+void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier tempBodyCascade, float state)
 {
     Mat frame_gray;
     std::vector<Rect> rectangleBodies; //detected people from "Cascade Classifier" are represented as rectangles
@@ -121,7 +121,12 @@ void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier te
 		personObjReference = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
 		personObjReference.stillBeingTracked = true;
 		int thickness=2, lineType=8, shift=0;
-		rectangle( img, rectangleBodies[5], BLUE, thickness, lineType, shift );
+		if(state < 3.0)
+			rectangle( img, rectangleBodies[0], BLUE, thickness, lineType, shift );
+		if(state < 4.0 && state >= 3.0)
+			rectangle( img, rectangleBodies[0], GREEN, thickness, lineType, shift );
+		if(state >= 4.0)
+			rectangle( img, rectangleBodies[0], RED, thickness, lineType, shift );
 		personObjReference.numConsecutiveFramesWithoutAMatch = 0;
 	}
 	else if(personObjReference.numConsecutiveFramesWithoutAMatch > NUM_NOT_DETECTED) //wait number of frames before saying person is not detected
@@ -163,6 +168,8 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 	double rollAvgRectAreaInitial = 0.0; //used to detect area of person's rectangle on first iteration of state machine
 	double rollAvgRectAreaNew = 0.0;
 	double rollAvgNewMinInitial = 0.0;
+
+	VideoWriter myVideoWriter;
 
 
 	cout << "Thread Start " << cameraNum << endl;
@@ -215,7 +222,7 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 //Using Marc's method of "Cascade Classifier"
 
 		//Detect and draw bodies using "Cascade Classifier"
-		findBodies(imgThreshNorm, personFound, body_cascade);
+		findBodies(imgThreshNorm, personFound, body_cascade, state);
 
 		//Show detected objects using "imshow()"
 		if(seeDebugFramesOutput)
@@ -234,45 +241,59 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 			{
 				std::time_t timePresent2 = std::time(0);
 
-				if( (state < 2.7) && (personFound.rollAvgCount < rollAvgSize) )//take rolling average of initial rect areas
+				if( (state < 2.9) && (personFound.rollAvgCount < rollAvgSize) )//take rolling average of initial rect areas
 				{
 					//find baseline detected person area the first time in State#2
 					double tempAvgAreaVal = personFound.dblCurrentArea;
-					if(tempAvgAreaVal < 100000000.0) //prevent getting an insanely large area noisy/bad value
-						rollAvgRectAreaInitial = personFound.rollingAverageCalc(tempAvgAreaVal);;
+					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000.0) //prevent getting an insanely large area noisy/bad value
+					{
+						rollAvgRectAreaInitial = personFound.rollingAverageCalc(tempAvgAreaVal);
+						state += (2.9-2.0)/(rollAvgSize); //stop using this state machine after rolling avg is full
+					}
 
 					timeFirstPersonObjDetected = std::time(0);
-					state += 0.01; //grab 20 inital value samples for averaging when the state is changed
-					txtLogFileWrite << "State2Init: " << convertDateTime(timeFirstPersonObjDetected) << endl;
+					txtLogFileWrite << "State2Init T" << to_string(cameraNum) << convertDateTime(timeFirstPersonObjDetected) << endl;
+					cout << "S2Init T" << cameraNum << " rlCnt" << personFound.rollAvgCount << endl;
 					continue;
 				}
-				else if(timePresent2 - timeFirstPersonObjDetected >= 1)//STATE2: save image every 3 seconds
+				else if(timePresent2 - timeFirstPersonObjDetected >= 2)//STATE2: save image every 3 seconds
 				{
-					rollAvgRectAreaNew = personFound.rollingAverageCalc(personFound.dblCurrentArea);
-					rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
-
-					//rollAvgRectAreaInitial = rollAvgRectAreaNew;
-					cout << "S2: 6secPic" << "Diff" << rollAvgNewMinInitial << "Init" << rollAvgRectAreaInitial << endl;
+//					rollAvgRectAreaInitial = rollAvgRectAreaNew;
+					cout << "S2: 3secPic T" << cameraNum << "Diff" << rollAvgNewMinInitial << " Init" << rollAvgRectAreaInitial << endl;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.95;
 					std::time_t timeNow = std::time(NULL);
-					txtLogFileWrite << "State2: 6SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
+					txtLogFileWrite << "State2 3SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
 					string pictureFileName = "./outputPictures/S2outputPic T" + to_string(cameraNum) + ":" + convertDateTime(timeNow) + ".jpg";
 					imwrite(pictureFileName, frame1);
 				}
-				else{} //should not run this
+				else
+				{
+					rollAvgRectAreaNew = personFound.rollingAverageCalc(personFound.dblCurrentArea);
+					rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
+				}
 
 			}
 			if( ((state > 2.9 && state <=2.99)  &&  (rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0) )
 					|| (state >= 3.0 && state < 4.0) )
 			{
-				if(state == 2.9)
+				if( (state < 3.9) && (personFound.rollAvgCount < rollAvgSize) )//take rolling average of initial rect areas
 				{
-					//find baseline detected person area the first time in State#3
-					rollAvgRectAreaInitial = personFound.dblCurrentArea;
+					//latch into this state one in here.
+					if(state < 3.0)
+						state = 3.0;
+
+					//find baseline detected person area the first time in State#2
+					double tempAvgAreaVal = personFound.dblCurrentArea;
+					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000.0) //prevent getting an insanely large area noisy/bad value
+					{
+						rollAvgRectAreaInitial = personFound.rollingAverageCalc(tempAvgAreaVal);
+						state += (3.9-3.0)/(rollAvgSize); //stop using this state machine after rolling avg is full
+					}
+
 					timeFirstPersonObjDetected = std::time(0);
-					state = 3.1;
-					txtLogFileWrite << "State3Init: " << convertDateTime(timeFirstPersonObjDetected) << endl;
+					txtLogFileWrite << "State3Init T" << to_string(cameraNum) << convertDateTime(timeFirstPersonObjDetected) << endl;
+					cout << "S3Init T" << cameraNum << " rlCnt" << personFound.rollAvgCount << endl;
 					continue;
 				}
 
@@ -283,33 +304,43 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 				//STATE3: moving toward camera; take higher resolution picture every 3 seconds
 				if (timePresent2 - timeFirstPersonObjDetected >= 1)
 				{
-					rollAvgRectAreaInitial = rollAvgRectAreaNew;
-					cout << "S3: 3secPic" << endl;
+//					rollAvgRectAreaInitial = rollAvgRectAreaNew;
 					timeFirstPersonObjDetected = std::time(0);
-					state = 3.2;
+					state = 3.95;
 					std::time_t timeNow = std::time(NULL);
-					txtLogFileWrite << "State3: 3SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
+					txtLogFileWrite << "State3: 1SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
+					cout << "S3: 1secPic T" << cameraNum << "Diff" << rollAvgNewMinInitial << " Init" << rollAvgRectAreaInitial << endl;
 					string pictureFileName = "./outputPictures/S3outputPic T" + to_string(cameraNum) + ":" + convertDateTime(timeNow) + ".jpg";
 					imwrite(pictureFileName, frame1);
 				}
 			}
-			if( ( state == 3.2  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
+			if( ( state >= 3.93  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| (state >= 4.0) )
 			{
 				std::time_t timeNow = std::time(NULL);
 
-				if(state == 3.2) //only create 1 video file when transitioning from state 3 to state 4
+				//latch into this state one in here.
+				//only create 1 video file when transitioning from state 3 to state 4
+				if(state < 4.1)
 				{
-					//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+					state = 4.1;
+					cout << "S4Init T" << cameraNum << endl;
+					txtLogFileWrite << "State2Init T" << to_string(cameraNum) << convertDateTime(timeNow) << endl;
+				}
+				if(state > 4.0 && state < 4.2)
+				{
+					txtLogFileWrite << "State4: Video T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
+					cout << "S4:Video T" << cameraNum << endl;
 					videoFileName = "./outputVideo/VideoCam T" + to_string(cameraNum) + convertDateTime(timeNow) + ".avi";
-					state = 4.0;
+					//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+					VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
+					myVideoWriter = outputVideo;
+					state = 4.5;
 				}
 
-				cout << "S4: Video" << endl;
-				timeFirstPersonObjDetected = timeNow;
-				txtLogFileWrite << "State4: Video T" << to_string(cameraNum) << ":" << to_string(timeNow) << endl;
-				VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
-				outputVideo.write(frame1);
+
+//				outputVideo.write(frame1);
+				myVideoWriter.write(frame1);
 			}
 
 		}
@@ -318,6 +349,9 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 			//Person not detected
 			//Next time person is detected, the state machine will be on state#2
 			state = 2.0;
+			rollAvgRectAreaInitial = 0.0;
+			rollAvgRectAreaNew = 0.0;
+			rollAvgNewMinInitial = 0.0;
 		}
 
 
@@ -367,15 +401,13 @@ int main(void)
 	//identify which cameras are detected over USB
 	cv::VideoCapture temp_camera;
 	int maxTested = 10;
-	for (int i = 0; i < maxTested; i++)
+	for(int i=0; i<maxTested; i++)
 	{
 		cv::VideoCapture temp_camera(i);
 		bool res = (temp_camera.isOpened());
 		temp_camera.release();
-		if (res)
-		{
+		if(res)
 			cout << "CamDetected:" << i << endl;
-		}
 	}
 
 
