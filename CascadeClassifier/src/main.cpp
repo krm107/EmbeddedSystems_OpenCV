@@ -25,10 +25,10 @@ using namespace cv;
 using namespace std;
 
 
-//#define FRAME_WIDTH 160
-//#define FRAME_HEIGHT 120
-#define FRAME_WIDTH 320
-#define FRAME_HEIGHT 240
+//#define FRAME_WIDTH 240
+//#define FRAME_HEIGHT 320
+#define FRAME_WIDTH 60
+#define FRAME_HEIGHT 80
 #define BLACK cv::Scalar(0.0, 0.0, 0.0)
 #define WHITE cv::Scalar(255.0, 255.0, 255.0)
 #define YELLOW cv::Scalar(0.0, 255.0, 255.0)
@@ -38,7 +38,7 @@ using namespace std;
 
 
 //how many cameras are used (1,2,3, or 4)?
-#define cameras123		//cameras1 //cameras12 //cameras123 //cameras1234
+#define cameras1234		//cameras1 //cameras12 //cameras123 //cameras1234
 
 //run camera operations in separate threads
 //Thread info from "http://www.cplusplus.com/reference/thread/thread/"
@@ -63,7 +63,10 @@ int STOP_PROGRAM = 0;
 
 //home tuning:
 ///*
-int THRESHOLD = 75; //default value of 30
+int THRESHOLD0 = 75; //default value of 30
+int THRESHOLD1 = 75; //default value of 30
+int THRESHOLD2 = 75; //default value of 30
+int THRESHOLD3 = 75; //default value of 30
 int scFxThous = 1100; //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
 int MIN_NEIGHBORS = 3;
 int RECT_AREA_SIZE_MOVING_CLOSER = 5000000; //value on trackbar is 1000x scaled up (default 2000 is 2000000 scaled)
@@ -100,7 +103,10 @@ void createTrackbars()
 	//the max value the trackbar can move (eg. 255 for 8 bit register),
 	//and the function that is called whenever the trackbar is moved(eg. on_trackbar)
 
-	createTrackbar( "THRESHOLD", trackbarWindowName, &THRESHOLD, 255, on_trackbar );
+	createTrackbar( "THRESHOLD0", trackbarWindowName, &THRESHOLD0, 255, on_trackbar );
+	createTrackbar( "THRESHOLD1", trackbarWindowName, &THRESHOLD1, 255, on_trackbar );
+	createTrackbar( "THRESHOLD2", trackbarWindowName, &THRESHOLD2, 255, on_trackbar );
+	createTrackbar( "THRESHOLD3", trackbarWindowName, &THRESHOLD3, 255, on_trackbar );
 	createTrackbar( "scFxThous", trackbarWindowName, &scFxThous, 5000, on_trackbar ); //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
 	createTrackbar( "MIN_NEIGHBORS", trackbarWindowName, &MIN_NEIGHBORS, 10, on_trackbar );
 	createTrackbar( "RECT_AREA_CLOSER", trackbarWindowName, &RECT_AREA_SIZE_MOVING_CLOSER, 10000000, on_trackbar );
@@ -225,8 +231,16 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 		//Output Image after threshold (Thresholding is a Low-pass filter)
 		cv::Mat imgThreshNorm;
 
-		//Filter image further
-		cv::threshold(frame2, imgThreshNorm, THRESHOLD, 255.0, CV_THRESH_BINARY);
+		
+		//Filter image using the "threshold()" OpenCV function
+		if(cameraNum == camera0)
+			cv::threshold(frame2, imgThreshNorm, THRESHOLD0, 255.0, CV_THRESH_BINARY);
+		if(cameraNum == camera1)
+			cv::threshold(frame2, imgThreshNorm, THRESHOLD1, 255.0, CV_THRESH_BINARY);
+		if(cameraNum == camera2)
+			cv::threshold(frame2, imgThreshNorm, THRESHOLD2, 255.0, CV_THRESH_BINARY);
+		if(cameraNum == camera3)
+			cv::threshold(frame2, imgThreshNorm, THRESHOLD3, 255.0, CV_THRESH_BINARY);
 
 
 //Using Marc's method of "Cascade Classifier"
