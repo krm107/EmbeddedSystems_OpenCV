@@ -16,6 +16,9 @@
 #include <sys/stat.h> //used to detect if directories for pictures and video were already created
 
 
+//#include <cstdlib>
+
+
 //Working with Eclipse and OpenCV3.0
 //https://www.eclipse.org/forums/index.php/t/59314/
 //https://github.com/facebook/C3D/issues/253
@@ -25,10 +28,13 @@ using namespace cv;
 using namespace std;
 
 
-//#define FRAME_WIDTH 240
-//#define FRAME_HEIGHT 320
-#define FRAME_WIDTH 60
-#define FRAME_HEIGHT 80
+//#define FRAME_WIDTH 160
+//#define FRAME_HEIGHT 120
+//#define FRAME_WIDTH 320 //works with video
+//#define FRAME_HEIGHT 240
+#define FRAME_WIDTH 80
+#define FRAME_HEIGHT 60
+
 #define BLACK cv::Scalar(0.0, 0.0, 0.0)
 #define WHITE cv::Scalar(255.0, 255.0, 255.0)
 #define YELLOW cv::Scalar(0.0, 255.0, 255.0)
@@ -38,7 +44,7 @@ using namespace std;
 
 
 //how many cameras are used (1,2,3, or 4)?
-#define cameras1234		//cameras1 //cameras12 //cameras123 //cameras1234
+#define cameras1		//cameras1 //cameras12 //cameras123 //cameras1234
 
 //run camera operations in separate threads
 //Thread info from "http://www.cplusplus.com/reference/thread/thread/"
@@ -61,18 +67,24 @@ int NUM_NOT_DETECTED = 100;
 int STOP_PROGRAM = 0;
 */
 
+/*
 //home tuning:
-///*
-int THRESHOLD0 = 75; //default value of 30
-int THRESHOLD1 = 75; //default value of 30
-int THRESHOLD2 = 75; //default value of 30
-int THRESHOLD3 = 75; //default value of 30
+int THRESHOLD = 75; //default value of 30
 int scFxThous = 1100; //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
 int MIN_NEIGHBORS = 3;
 int RECT_AREA_SIZE_MOVING_CLOSER = 5000000; //value on trackbar is 1000x scaled up (default 2000 is 2000000 scaled)
 int NUM_NOT_DETECTED = 100;
 int STOP_PROGRAM = 0;
-//*/
+*/
+
+//lab tuning:
+int THRESHOLD = 45; //default value of 30
+int scFxThous = 1100; //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
+int MIN_NEIGHBORS = 3;
+int RECT_AREA_SIZE_MOVING_CLOSER = 5000000; //value on trackbar is 1000x scaled up (default 2000 is 2000000 scaled)
+int NUM_NOT_DETECTED = 120;
+int STOP_PROGRAM = 0;
+
 
 bool seeDebugFramesOutput = true;
 bool displayFramesPerSecond = false;
@@ -103,10 +115,7 @@ void createTrackbars()
 	//the max value the trackbar can move (eg. 255 for 8 bit register),
 	//and the function that is called whenever the trackbar is moved(eg. on_trackbar)
 
-	createTrackbar( "THRESHOLD0", trackbarWindowName, &THRESHOLD0, 255, on_trackbar );
-	createTrackbar( "THRESHOLD1", trackbarWindowName, &THRESHOLD1, 255, on_trackbar );
-	createTrackbar( "THRESHOLD2", trackbarWindowName, &THRESHOLD2, 255, on_trackbar );
-	createTrackbar( "THRESHOLD3", trackbarWindowName, &THRESHOLD3, 255, on_trackbar );
+	createTrackbar( "THRESHOLD", trackbarWindowName, &THRESHOLD, 255, on_trackbar );
 	createTrackbar( "scFxThous", trackbarWindowName, &scFxThous, 5000, on_trackbar ); //value on trackbar is 1000x scaled up (default 1.1 is 1100 scaled)
 	createTrackbar( "MIN_NEIGHBORS", trackbarWindowName, &MIN_NEIGHBORS, 10, on_trackbar );
 	createTrackbar( "RECT_AREA_CLOSER", trackbarWindowName, &RECT_AREA_SIZE_MOVING_CLOSER, 10000000, on_trackbar );
@@ -133,8 +142,15 @@ void findBodies(cv::Mat img, personObj &personObjReference, CascadeClassifier te
 
 	if(rectangleBodies.size() > 0) //person was detected
 	{
-		personObjReference = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
+//		personObjReference = personObj(rectangleBodies[0]); //assume person is the first object detected in "rectangleBodies" vector
+		personObj myLocalObj = personObj(rectangleBodies[0]);
+		personObjReference.dblCurrentArea = myLocalObj.dblCurrentArea; //assume person is the first object detected in "rectangleBodies" vector
 		personObjReference.stillBeingTracked = true;
+//		personObjReference.rollAvgCount =
+//		int rollAvgIndex = 0;
+//		double rollAvgSum = 0;
+
+
 		int thickness=2, lineType=8, shift=0;
 		if(state < 3.0)
 			rectangle( img, rectangleBodies[0], BLUE, thickness, lineType, shift );
@@ -231,16 +247,8 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 		//Output Image after threshold (Thresholding is a Low-pass filter)
 		cv::Mat imgThreshNorm;
 
-		
-		//Filter image using the "threshold()" OpenCV function
-		if(cameraNum == camera0)
-			cv::threshold(frame2, imgThreshNorm, THRESHOLD0, 255.0, CV_THRESH_BINARY);
-		if(cameraNum == camera1)
-			cv::threshold(frame2, imgThreshNorm, THRESHOLD1, 255.0, CV_THRESH_BINARY);
-		if(cameraNum == camera2)
-			cv::threshold(frame2, imgThreshNorm, THRESHOLD2, 255.0, CV_THRESH_BINARY);
-		if(cameraNum == camera3)
-			cv::threshold(frame2, imgThreshNorm, THRESHOLD3, 255.0, CV_THRESH_BINARY);
+		//Filter image further
+		cv::threshold(frame2, imgThreshNorm, THRESHOLD, 255.0, CV_THRESH_BINARY);
 
 
 //Using Marc's method of "Cascade Classifier"
@@ -259,6 +267,7 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 		//BEGIN STATE MACHINE LOGIC:
 		//	state machine logic for detected person approaching camera
+//State2
 		if(personFound.stillBeingTracked == true)
 		{
 
@@ -270,7 +279,8 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 				{
 					//find baseline detected person area the first time in State#2
 					double tempAvgAreaVal = personFound.dblCurrentArea;
-					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000.0) //prevent getting an insanely large area noisy/bad value
+					//if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000) //prevent getting an insanely large area noisy/bad value
+					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > 0) //prevent getting an insanely large area noisy/bad value
 					{
 						rollAvgRectAreaInitial = personFound.rollingAverageCalc(tempAvgAreaVal);
 						state += (2.9-2.0)/(rollAvgSize); //stop using this state machine after rolling avg is full
@@ -281,10 +291,10 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					cout << "S2Init T" << cameraNum << " rlCnt" << personFound.rollAvgCount << endl;
 					continue;
 				}
-				else if(timePresent2 - timeFirstPersonObjDetected >= 2)//STATE2: save image every 3 seconds
+				if(timePresent2 - timeFirstPersonObjDetected >= 3)//STATE2: save image every 3 seconds
 				{
 //					rollAvgRectAreaInitial = rollAvgRectAreaNew;
-					cout << "S2: 3secPic T" << cameraNum << "Diff" << rollAvgNewMinInitial << " Init" << rollAvgRectAreaInitial << endl;
+					cout << "S2: 3secPic T" << cameraNum << "Diff" << rollAvgNewMinInitial << " rolNew" << rollAvgRectAreaNew << " Init" << rollAvgRectAreaInitial << endl;
 					timeFirstPersonObjDetected = std::time(0);
 					state = 2.95;
 					std::time_t timeNow = std::time(NULL);
@@ -292,13 +302,36 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					string pictureFileName = "./outputPictures/S2outputPic T" + to_string(cameraNum) + ":" + convertDateTime(timeNow) + ".jpg";
 					imwrite(pictureFileName, frame1);
 				}
-				else
+
+				if(state > 2.9)
 				{
-					rollAvgRectAreaNew = personFound.rollingAverageCalc(personFound.dblCurrentArea);
-					rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
+					double tempAvgAreaVal = personFound.dblCurrentArea;
+					//if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000) //prevent getting an insanely large area noisy/bad value
+					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > 0) //prevent getting an insanely large area noisy/bad value
+					{
+
+						rollAvgRectAreaNew = personFound.rollingAverageCalc(tempAvgAreaVal);
+						rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
+
+
+//						cout << " tempAreaVal " << tempAvgAreaVal << " rolNew " << rollAvgRectAreaNew << endl;
+//
+//						//value of area sucks
+//						if(rollAvgRectAreaNew < -1000000 || rollAvgRectAreaNew > 1000000)
+//						{
+//							int temp5 = 0;
+//							double retval1 = personFound.rollingAverageCalc(tempAvgAreaVal);
+//
+//							temp5 = 5;
+//						}
+
+					}
 				}
 
+
 			}
+
+//State3
 			if( ((state > 2.9 && state <=2.99)  &&  (rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0) )
 					|| (state >= 3.0 && state < 4.0) )
 			{
@@ -310,7 +343,8 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 					//find baseline detected person area the first time in State#2
 					double tempAvgAreaVal = personFound.dblCurrentArea;
-					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000.0) //prevent getting an insanely large area noisy/bad value
+					//if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000) //prevent getting an insanely large area noisy/bad value
+					if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > 0) //prevent getting an insanely large area noisy/bad value
 					{
 						rollAvgRectAreaInitial = personFound.rollingAverageCalc(tempAvgAreaVal);
 						state += (3.9-3.0)/(rollAvgSize); //stop using this state machine after rolling avg is full
@@ -322,8 +356,14 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					continue;
 				}
 
-				rollAvgRectAreaNew = personFound.rollingAverageCalc(personFound.dblCurrentArea);
-				rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
+
+				double tempAvgAreaVal = personFound.dblCurrentArea;
+				//if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > -50000) //prevent getting an insanely large area noisy/bad value
+				if(tempAvgAreaVal < 50000.0 && tempAvgAreaVal > 0) //prevent getting an insanely large area noisy/bad value
+				{
+					rollAvgRectAreaNew = personFound.rollingAverageCalc(tempAvgAreaVal);
+					rollAvgNewMinInitial = rollAvgRectAreaNew - rollAvgRectAreaInitial;
+				}
 
 				std::time_t timePresent2 = std::time(0);
 				//STATE3: moving toward camera; take higher resolution picture every 3 seconds
@@ -334,11 +374,13 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 					state = 3.95;
 					std::time_t timeNow = std::time(NULL);
 					txtLogFileWrite << "State3: 1SecPic T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
-					cout << "S3: 1secPic T" << cameraNum << "Diff" << rollAvgNewMinInitial << " Init" << rollAvgRectAreaInitial << endl;
+					cout << "S3: 1secPic T" << cameraNum << " Diff" << rollAvgNewMinInitial << " rolNew" << rollAvgRectAreaNew << " Init" << rollAvgRectAreaInitial << " tempAreaVal" << tempAvgAreaVal << endl;
 					string pictureFileName = "./outputPictures/S3outputPic T" + to_string(cameraNum) + ":" + convertDateTime(timeNow) + ".jpg";
 					imwrite(pictureFileName, frame1);
 				}
 			}
+
+//State4
 			if( ( state >= 3.93  &&  rollAvgNewMinInitial >= (double)RECT_AREA_SIZE_MOVING_CLOSER/1000.0 )
 					|| (state >= 4.0) )
 			{
@@ -348,17 +390,32 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 				//only create 1 video file when transitioning from state 3 to state 4
 				if(state < 4.1)
 				{
+				    // Default resolution of the frame is obtained.The default resolution is system dependent.
+				    int frame_width = vc1.get(CV_CAP_PROP_FRAME_WIDTH);
+				    int frame_height = vc1.get(CV_CAP_PROP_FRAME_HEIGHT);
+
 					txtLogFileWrite << "State4: Video T" << to_string(cameraNum) << ":" << convertDateTime(timeNow) << endl;
 					cout << "S4:Video T" << cameraNum << endl;
 					videoFileName = "./outputVideo/VideoCam T" + to_string(cameraNum) + convertDateTime(timeNow) + ".avi";
+//					videoFileName = "./outputVideo/VideoCam T" + to_string(cameraNum) + convertDateTime(timeNow) + ".mpeg";
+
 					//https://stackoverflow.com/questions/24195926/opencv-write-webcam-output-to-avi-file?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-					VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
+//					VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH, FRAME_HEIGHT), true);
+					VideoWriter outputVideo(videoFileName, CV_FOURCC('M','J','P','G'), 10, Size(frame_width, frame_height), true);
 					myVideoWriter = outputVideo; //Copy reference to global "Videowriter" object (required since video name changes on each state3->4 transition)
+
+//					int ex = static_cast<int>(vc1.get(CAP_PROP_FOURCC));     // Get Codec Type- Int form
+//					myVideoWriter.open(videoFileName, ex=-1, inputVideo.get(CAP_PROP_FPS), S, true);
+
+					//Send email using Python script to studnet emails for new feature
+					system("python mail.py");
+					//do not run this state3->state4 logic after the first time
 					state = 4.5;
 				}
 
 				myVideoWriter.write(frame1);
 			}
+
 
 
 		}
@@ -416,6 +473,41 @@ void cameraOperations(int cameraNum, FileStorage XmlClassFile)
 
 int main(void)
 {
+
+
+/*
+	// Create a VideoCapture object and use camera to capture the video
+	    VideoCapture cap(0);
+
+	    // Check if camera opened successfully
+	    if(!cap.isOpened())
+	    {
+	        cout << "Error opening video stream" << endl;
+	        return -1;
+	    }
+
+	    // Default resolution of the frame is obtained.The default resolution is system dependent.
+	    int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+	    int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+	    // Define the codec and create VideoWriter object.The output is stored in 'outcpp.avi' file.
+	    VideoWriter video("outcpp-.avi",CV_FOURCC('M','J','P','G'),10, Size(frame_width,frame_height));
+	    while(1)
+	    {
+	        Mat frame;
+
+	        // Capture frame-by-frame
+	        cap >> frame;
+
+	        // Write the frame into the file 'outcpp.avi'
+	        video.write(frame);
+
+	        // Display the resulting frame
+	        imshow( "Frame", frame );
+	    }
+
+*/
+
 	//identify which cameras are detected over USB
 	cv::VideoCapture temp_camera;
 	int maxTested = 10;

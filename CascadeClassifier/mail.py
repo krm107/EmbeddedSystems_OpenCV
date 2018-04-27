@@ -10,7 +10,7 @@ fromEmail = 'smartCamera488@gmail.com'
 fromEmailPassword = 'piburnseasy'
 
 # Email you want to send the update to
-toEmail = 'mcarbone199@gmail.com'
+toEmail = 'macarbone199@gmail.com'
 
 def sendEmail():
 	msgRoot = MIMEMultipart('related')

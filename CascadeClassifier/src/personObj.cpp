@@ -24,6 +24,13 @@ personObj::personObj(cv::Rect rectangleOfPerson) {
 	if(rectangleOfPerson.width > 0 && rectangleOfPerson.height > 0)
 		dblCurrentArea = rectangleOfPerson.width * rectangleOfPerson.height;
 
+	//Initialize the roll avg arr to zero on obj creation
+	for(int i=0; i<rollAvgSize; i++)
+	{
+		rollAvgArr[i] = 0;
+	}
+
+
 	stillBeingTracked = false;
 }
 
@@ -32,8 +39,12 @@ personObj::personObj(cv::Rect rectangleOfPerson) {
 //http://playground.arduino.cc/Main/RunningAverage
 double personObj::rollingAverageCalc(double newValue) {
 
-	// keep sum updated to improve speed.
-	rollAvgSum -= rollAvgArr[rollAvgIndex];
+	if(rollAvgCount >= rollAvgSize)
+	{
+		// keep sum updated to improve speed.
+		rollAvgSum -= rollAvgArr[rollAvgIndex];
+	}
+
 	//add new value to rolling average at present index
 	rollAvgArr[rollAvgIndex] = newValue;
 	//Add new value to present sum
@@ -44,6 +55,10 @@ double personObj::rollingAverageCalc(double newValue) {
 	if (rollAvgCount < rollAvgSize)
 		rollAvgCount++;
 
+
+
 	//average out all values by dividing by the number of elements in the array
-	return rollAvgSum / (double)rollAvgCount;
+	double retval = rollAvgSum / (double)rollAvgCount;
+
+	return retval;
 }
